@@ -153,22 +153,40 @@ function getOriginalImageUrl(image) {
     return normalizeUrl(image);
   }
 
-  const candidates = [
-    image.download_url_list,
-    image.download_url,
+  // 优先尝试原图字段
+  const originalCandidates = [
+    image.origin_image_info?.url_list,
+    image.origin_image?.url_list,
+    image.url_list,
+    image.urlList
+  ];
+
+  for (const candidate of originalCandidates) {
+    const urls = getUrlList(candidate);
+
+    if (urls.length) {
+      return urls[urls.length - 1];
+    }
+  }
+
+  // 其次尝试其他原图和下载字段
+  const fallbackCandidates = [
     image.origin_image_info,
     image.origin_image,
     image.origin_image_url,
-    image.url_list,
-    image.urlList,
+    image.download_url_list,
+    image.download_url,
     image.display_image,
     image.display_image_url,
     image.image_url
   ];
 
-  for (const candidate of candidates) {
+  for (const candidate of fallbackCandidates) {
     const urls = getUrlList(candidate);
-    if (urls.length) return urls[0];
+
+    if (urls.length) {
+      return urls[urls.length - 1];
+    }
   }
 
   return "";
@@ -456,7 +474,6 @@ export default async function handler(req, res) {
     }
 
     // 第五步：备用详情接口
-    // 页面没有拿到作品，或者图文作品没有图片时尝试备用接口
     const currentImages =
       item?.images ||
       item?.image_post_info?.images ||
