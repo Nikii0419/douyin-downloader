@@ -147,6 +147,7 @@ function getUrlList(value) {
   return [];
 }
 
+// 获取图文原图地址
 function getOriginalImageUrl(image) {
   if (!image || typeof image !== "object") {
     return normalizeUrl(image);
@@ -155,24 +156,17 @@ function getOriginalImageUrl(image) {
   const candidates = [
     image.download_url_list,
     image.download_url,
+    image.origin_image_info,
     image.origin_image,
     image.origin_image_url,
-    image.origin_image_info,
-    image.url_list
-  ];
-
-  for (const candidate of candidates) {
-    const urls = getUrlList(candidate);
-    if (urls.length) return urls[0];
-  }
-
-  const fallback = [
+    image.url_list,
+    image.urlList,
     image.display_image,
     image.display_image_url,
     image.image_url
   ];
 
-  for (const candidate of fallback) {
+  for (const candidate of candidates) {
     const urls = getUrlList(candidate);
     if (urls.length) return urls[0];
   }
@@ -185,6 +179,7 @@ function firstUrl(obj) {
   return urls[0] || "";
 }
 
+// 从页面数据中寻找作品详情
 function findAweme(data) {
   const seen = new Set();
   const stack = [data];
@@ -226,6 +221,7 @@ function findAweme(data) {
   return null;
 }
 
+// 提取作品 ID
 function findAwemeId(data, html, finalUrl) {
   const fromUrl =
     finalUrl.match(/\/(?:video|note|slides)\/(\d+)/)?.[1] ||
@@ -268,6 +264,7 @@ function findAwemeId(data, html, finalUrl) {
   return "";
 }
 
+// 请求作品分享页面
 async function fetchSharePage(url, cookie) {
   const headers = { ...BASE_HEADERS };
 
@@ -280,6 +277,47 @@ async function fetchSharePage(url, cookie) {
     headers,
     signal: AbortSignal.timeout(25000)
   });
+}
+
+// 图文作品备用详情接口
+async function fetchAwemeDetail(awemeId) {
+  const endpoint = new URL(
+    "https://api.amemv.com/aweme/v1/aweme/detail/"
+  );
+
+  endpoint.search = new URLSearchParams({
+    aweme_id: String(awemeId),
+    aid: "6383",
+    device_platform: "web",
+    version_code: "190500",
+    version_name: "19.5.0"
+  }).toString();
+
+  const response = await fetch(endpoint.toString(), {
+    headers: {
+      "User-Agent": MOBILE_UA,
+      "Accept": "application/json, text/plain, */*",
+      "Referer": "https://www.douyin.com/"
+    },
+    signal: AbortSignal.timeout(18000)
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const data = await response.json();
+  const item = data?.aweme_detail;
+
+  if (
+    Number(data?.status_code) !== 0 ||
+    !item ||
+    String(item.aweme_id) !== String(awemeId)
+  ) {
+    return null;
+  }
+
+  return item;
 }
 
 export default async function handler(req, res) {
@@ -417,6 +455,42 @@ export default async function handler(req, res) {
       item = findAweme(routerData);
     }
 
+    // 第五步：备用详情接口
+    // 页面没有拿到作品，或者图文作品没有图片时尝试备用接口
+    const currentImages =
+      item?.images ||
+      item?.image_post_info?.images ||
+      [];
+
+    if (
+      !item ||
+      !Array.isArray(currentImages) ||
+      currentImages.length === 0
+    ) {
+      try {
+        const detailItem = await fetchAwemeDetail(awemeId);
+
+        if (detailItem) {
+          const detailImages =
+            detailItem.images ||
+            detailItem.image_post_info?.images ||
+            [];
+
+          if (
+            !item ||
+            (Array.isArray(detailImages) && detailImages.length > 0)
+          ) {
+            item = detailItem;
+          }
+        }
+      } catch (e) {
+        console.error(
+          "Douyin detail API fallback failed:",
+          e.message
+        );
+      }
+    }
+
     if (!item) {
       console.error(
         "Douyin page diagnostic:",
@@ -435,22 +509,28 @@ export default async function handler(req, res) {
       );
     }
 
-    // 图文作品
+    // 第六步：解析图文作品
     const imageObjects =
       item.images ||
       item.image_post_info?.images ||
       [];
 
-    const images = imageObjects
-      .map(getOriginalImageUrl)
-      .filter(Boolean);
+    const images = [
+      ...new Set(
+        imageObjects
+          .map(getOriginalImageUrl)
+          .filter(Boolean)
+      )
+    ];
 
     const video = item.video || {};
 
+    // 第七步：解析普通视频
     const rawVideo =
       firstUrl(video.play_addr) ||
       firstUrl(video.download_addr);
 
+    // 返回图文作品
     if (images.length > 0) {
       return res.status(200).json({
         type: "images",
@@ -461,6 +541,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // 返回普通视频
     if (rawVideo) {
       return res.status(200).json({
         type: "video",
