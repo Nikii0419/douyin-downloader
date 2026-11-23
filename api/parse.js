@@ -40,21 +40,102 @@ function extractRouterData(html) {
   return null;
 }
 
-function firstUrl(obj) {
-  const urls = obj?.url_list || [];
-  const url = urls.find(
-    u => typeof u === "string" && /^https?:|^\/\//i.test(u)
-  );
+// 从抖音返回的地址结构中提取 HTTPS 地址
+function normalizeUrl(value) {
+  if (typeof value !== "string" || !value.trim()) return "";
 
-  if (!url) return "";
-  return url.startsWith("//") ? "https:" + url : url;
+  let url = value.trim();
+
+  if (url.startsWith("//")) {
+    url = "https:" + url;
+  }
+
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" ? parsed.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function getUrlList(value) {
+  if (!value) return [];
+
+  if (typeof value === "string") {
+    const url = normalizeUrl(value);
+    return url ? [url] : [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap(getUrlList);
+  }
+
+  if (typeof value === "object") {
+    const result = [];
+
+    if (Array.isArray(value.url_list)) {
+      result.push(...getUrlList(value.url_list));
+    }
+
+    if (value.url) {
+      result.push(...getUrlList(value.url));
+    }
+
+    if (value.uri && typeof value.uri === "string") {
+      const url = normalizeUrl(value.uri);
+      if (url) result.push(url);
+    }
+
+    return [...new Set(result)];
+  }
+
+  return [];
+}
+
+// 优先取原图下载地址，再取原始图片对象，最后才回退普通图片地址
+function getOriginalImageUrl(image) {
+  if (!image || typeof image !== "object") {
+    return normalizeUrl(image);
+  }
+
+  const candidates = [
+    image.download_url_list,
+    image.download_url,
+    image.origin_image,
+    image.origin_image_url,
+    image.origin_image_info,
+    image.url_list
+  ];
+
+  for (const candidate of candidates) {
+    const urls = getUrlList(candidate);
+    if (urls.length) return urls[0];
+  }
+
+  // 兼容部分接口将原图地址放在其他字段的情况
+  const fallback = [
+    image.display_image,
+    image.display_image_url,
+    image.image_url
+  ];
+
+  for (const candidate of fallback) {
+    const urls = getUrlList(candidate);
+    if (urls.length) return urls[0];
+  }
+
+  return "";
+}
+
+function firstUrl(obj) {
+  const urls = getUrlList(obj);
+  return urls[0] || "";
 }
 
 function findAweme(data) {
   const loaderData = data?.loaderData || {};
   const diagnostics = [];
 
-  // 优先按抖音分享页的真实数据结构提取
   for (const [key, page] of Object.entries(loaderData)) {
     const result = page?.videoInfoRes;
     const items = result?.item_list || [];
@@ -70,7 +151,6 @@ function findAweme(data) {
     });
   }
 
-  // 兼容其他嵌套结构
   const seen = new Set();
   const stack = [data];
 
@@ -110,29 +190,42 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "只支持 POST 请求。" });
+    return res.status(405).json({
+      error: "只支持 POST 请求。"
+    });
   }
 
   try {
     const input = String(req.body?.text || "").trim();
 
     if (!input) {
-      return res.status(400).json({ error: "请提供抖音分享链接。" });
+      return res.status(400).json({
+        error: "请提供抖音分享链接。"
+      });
     }
 
     const urls = input.match(/https?:\/\/[^\s，。]+/g) || [];
-    const candidate = urls.find(u =>
-      /douyin\.com|iesdouyin\.com/i.test(u)
+
+    const candidate = urls.find(url =>
+      /douyin\.com|iesdouyin\.com/i.test(url)
     );
 
     if (!candidate) {
-      return res.status(400).json({ error: "没有识别到有效的抖音链接。" });
+      return res.status(400).json({
+        error: "没有识别到有效的抖音链接。"
+      });
     }
 
     const parsed = new URL(candidate);
 
-    if (!/(^|\.)douyin\.com$|(^|\.)iesdouyin\.com$/i.test(parsed.hostname)) {
-      return res.status(400).json({ error: "仅支持抖音链接。" });
+    if (
+      !/(^|\.)douyin\.com$|(^|\.)iesdouyin\.com$/i.test(
+        parsed.hostname
+      )
+    ) {
+      return res.status(400).json({
+        error: "仅支持抖音链接。"
+      });
     }
 
     const headers = {
@@ -148,7 +241,9 @@ export default async function handler(req, res) {
     });
 
     if (!redirect.ok) {
-      throw new Error(`分享链接访问失败，HTTP ${redirect.status}`);
+      throw new Error(
+        `分享链接访问失败，HTTP ${redirect.status}`
+      );
     }
 
     const finalUrl = redirect.url || candidate;
@@ -167,11 +262,15 @@ export default async function handler(req, res) {
     }
 
     if (!awemeId) {
-      throw new Error("无法获取作品 ID，请确认分享链接有效。");
+      throw new Error(
+        "无法获取作品 ID，请确认分享链接有效。"
+      );
     }
 
     const path = new URL(finalUrl).pathname;
-    const kind = /\/(?:note|slides)\//.test(path) ? "note" : "video";
+    const kind = /\/(?:note|slides)\//.test(path)
+      ? "note"
+      : "video";
 
     const sharePage =
       `https://www.iesdouyin.com/share/${kind}/${awemeId}/`;
@@ -182,36 +281,48 @@ export default async function handler(req, res) {
     });
 
     if (!pageRes.ok) {
-      throw new Error(`作品页面访问失败，HTTP ${pageRes.status}`);
+      throw new Error(
+        `作品页面访问失败，HTTP ${pageRes.status}`
+      );
     }
 
     const html = await pageRes.text();
 
     if (!html || html.length < 100) {
-      throw new Error("抖音返回的作品页面内容为空。");
+      throw new Error(
+        "抖音返回的作品页面内容为空。"
+      );
     }
 
     const routerData = extractRouterData(html);
 
     if (!routerData) {
-      throw new Error("没有找到页面作品数据，可能触发抖音访问限制。");
+      throw new Error(
+        "没有找到页面作品数据，可能触发抖音访问限制。"
+      );
     }
 
     const found = findAweme(routerData);
     const item = found.item;
 
     if (!item) {
-      console.error("Douyin loaderData diagnostics:", found.diagnostics);
+      console.error(
+        "Douyin loaderData diagnostics:",
+        found.diagnostics
+      );
+
       throw new Error(
         "没有找到作品详情。抖音页面数据结构可能已变化，或当前访问受到限制。"
       );
     }
 
+    // 图文：优先获取原图下载地址
     const images = (item.images || [])
-      .map(image => firstUrl(image))
+      .map(getOriginalImageUrl)
       .filter(Boolean);
 
     const video = item.video || {};
+
     const rawVideo =
       firstUrl(video.play_addr) ||
       firstUrl(video.download_addr);
@@ -229,7 +340,10 @@ export default async function handler(req, res) {
     if (rawVideo) {
       return res.status(200).json({
         type: "video",
-        videoUrl: rawVideo.replace("/playwm/", "/play/"),
+        videoUrl: rawVideo.replace(
+          "/playwm/",
+          "/play/"
+        ),
         description: item.desc || "抖音视频",
         author: item.author?.nickname || "",
         cover:
@@ -239,13 +353,16 @@ export default async function handler(req, res) {
       });
     }
 
-    throw new Error("已找到作品，但没有获取到可下载的视频或图片地址。");
+    throw new Error(
+      "已找到作品，但没有获取到可下载的视频或图片地址。"
+    );
 
   } catch (e) {
     console.error("Douyin parse error:", e);
 
     return res.status(502).json({
-      error: e.message || "解析服务暂时不可用，请稍后重试。"
+      error: e.message ||
+        "解析服务暂时不可用，请稍后重试。"
     });
   }
 }
