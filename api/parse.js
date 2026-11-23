@@ -153,7 +153,6 @@ function getOriginalImageUrl(image) {
     return normalizeUrl(image);
   }
 
-  // 优先尝试原图字段
   const originalCandidates = [
     image.origin_image_info?.url_list,
     image.origin_image?.url_list,
@@ -169,7 +168,6 @@ function getOriginalImageUrl(image) {
     }
   }
 
-  // 其次尝试其他原图和下载字段
   const fallbackCandidates = [
     image.origin_image_info,
     image.origin_image,
@@ -197,7 +195,7 @@ function firstUrl(obj) {
   return urls[0] || "";
 }
 
-// 从页面数据中寻找作品详情
+// 从页面数据中寻找抖音作品详情
 function findAweme(data) {
   const seen = new Set();
   const stack = [data];
@@ -239,7 +237,7 @@ function findAweme(data) {
   return null;
 }
 
-// 提取作品 ID
+// 提取抖音作品 ID
 function findAwemeId(data, html, finalUrl) {
   const fromUrl =
     finalUrl.match(/\/(?:video|note|slides)\/(\d+)/)?.[1] ||
@@ -282,7 +280,7 @@ function findAwemeId(data, html, finalUrl) {
   return "";
 }
 
-// 请求作品分享页面
+// 请求抖音作品分享页面
 async function fetchSharePage(url, cookie) {
   const headers = { ...BASE_HEADERS };
 
@@ -297,7 +295,7 @@ async function fetchSharePage(url, cookie) {
   });
 }
 
-// 图文作品备用详情接口
+// 抖音图文作品备用详情接口
 async function fetchAwemeDetail(awemeId) {
   const endpoint = new URL(
     "https://api.amemv.com/aweme/v1/aweme/detail/"
@@ -338,6 +336,146 @@ async function fetchAwemeDetail(awemeId) {
   return item;
 }
 
+// B站解析
+async function parseBilibili(inputUrl) {
+  const parsedInput = new URL(inputUrl);
+  const inputHost = parsedInput.hostname.toLowerCase();
+
+  if (
+    inputHost !== "b23.tv" &&
+    inputHost !== "bilibili.com" &&
+    !inputHost.endsWith(".bilibili.com")
+  ) {
+    throw new Error("不是有效的 B站链接。");
+  }
+
+  // 访问短链接并跟随跳转
+  const resolved = await fetch(inputUrl, {
+    redirect: "follow",
+    headers: {
+      "User-Agent": MOBILE_UA,
+      "Referer": "https://www.bilibili.com/",
+      "Accept": "text/html,application/json,*/*"
+    },
+    signal: AbortSignal.timeout(20000)
+  });
+
+  if (!resolved.ok) {
+    throw new Error("B站链接访问失败，HTTP " + resolved.status);
+  }
+
+  const finalUrl = resolved.url || inputUrl;
+  const finalHost = new URL(finalUrl).hostname.toLowerCase();
+
+  if (
+    finalHost !== "bilibili.com" &&
+    !finalHost.endsWith(".bilibili.com")
+  ) {
+    throw new Error("B站短链接跳转到了非 B站地址，已停止解析。");
+  }
+
+  // 提取 BV 号
+  const bvidMatch =
+    finalUrl.match(/\/video\/(BV[0-9A-Za-z]+)/i) ||
+    finalUrl.match(/\b(BV[0-9A-Za-z]{10})\b/i);
+
+  if (!bvidMatch) {
+    throw new Error("没有识别到 B站 BV 号，请确认分享的是公开视频。");
+  }
+
+  const bvid = bvidMatch[1];
+  const pageUrl = new URL(finalUrl);
+  const pageNo = Math.max(1, Number(pageUrl.searchParams.get("p")) || 1);
+
+  const headers = {
+    "User-Agent": MOBILE_UA,
+    "Referer": "https://www.bilibili.com/video/" + bvid + "/",
+    "Accept": "application/json, text/plain, */*"
+  };
+
+  // 获取作品信息
+  const viewUrl = new URL("https://api.bilibili.com/x/web-interface/view");
+  viewUrl.searchParams.set("bvid", bvid);
+
+  const viewRes = await fetch(viewUrl.toString(), {
+    headers,
+    signal: AbortSignal.timeout(18000)
+  });
+
+  if (!viewRes.ok) {
+    throw new Error("B站作品信息获取失败，HTTP " + viewRes.status);
+  }
+
+  const viewJson = await viewRes.json();
+
+  if (viewJson.code !== 0 || !viewJson.data) {
+    throw new Error(
+      "B站暂时无法提供作品信息：" +
+      (viewJson.message || "接口返回异常")
+    );
+  }
+
+  const item = viewJson.data;
+  const pages = Array.isArray(item.pages) ? item.pages : [];
+
+  const selectedPage =
+    pages.find(page => Number(page.page) === pageNo) ||
+    pages[0];
+
+  if (!selectedPage || !selectedPage.cid) {
+    throw new Error("没有找到该视频的播放分P信息。");
+  }
+
+  // 获取视频播放地址
+  const playUrl = new URL("https://api.bilibili.com/x/player/playurl");
+
+  playUrl.search = new URLSearchParams({
+    bvid,
+    cid: String(selectedPage.cid),
+    qn: "32",
+    fnval: "1",
+    fnver: "0",
+    fourk: "0",
+    platform: "html5",
+    high_quality: "0"
+  }).toString();
+
+  const playRes = await fetch(playUrl.toString(), {
+    headers,
+    signal: AbortSignal.timeout(20000)
+  });
+
+  if (!playRes.ok) {
+    throw new Error("B站播放地址获取失败，HTTP " + playRes.status);
+  }
+
+  const playJson = await playRes.json();
+  const durl = playJson?.data?.durl?.[0];
+  const mediaUrl = durl?.url || durl?.backup_url?.[0] || "";
+
+  if (playJson.code !== 0 || !mediaUrl) {
+    throw new Error(
+      "B站没有返回可直接下载的 MP4 地址：" +
+      (playJson.message || "可能需要登录或该视频有播放权限限制")
+    );
+  }
+
+  const safeMediaUrl = normalizeUrl(mediaUrl);
+
+  if (!safeMediaUrl) {
+    throw new Error("B站返回的媒体地址无效。");
+  }
+
+  return {
+    type: "video",
+    videoUrl: safeMediaUrl,
+    description: item.title || "B站视频",
+    author: item.owner?.name || "",
+    cover: normalizeUrl(item.pic || "")
+  };
+}
+
+// 主解析入口
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -358,19 +496,43 @@ export default async function handler(req, res) {
 
     if (!input) {
       return res.status(400).json({
-        error: "请提供抖音分享链接。"
+        error: "请提供作品分享链接。"
       });
     }
 
     const urls = input.match(/https?:\/\/[^\s，。]+/g) || [];
 
+    // 优先识别 B站链接
+    let bilibiliUrl = "";
+
+    for (const url of urls) {
+      try {
+        const host = new URL(url).hostname.toLowerCase();
+
+        if (
+          host === "b23.tv" ||
+          host === "bilibili.com" ||
+          host.endsWith(".bilibili.com")
+        ) {
+          bilibiliUrl = url;
+          break;
+        }
+      } catch {}
+    }
+
+    if (bilibiliUrl) {
+      const result = await parseBilibili(bilibiliUrl);
+      return res.status(200).json(result);
+    }
+
+    // 原有抖音识别逻辑
     const candidate = urls.find(url =>
       /douyin\.com|iesdouyin\.com/i.test(url)
     );
 
     if (!candidate) {
       return res.status(400).json({
-        error: "没有识别到有效的抖音链接。"
+        error: "没有识别到有效的抖音或 B站链接。"
       });
     }
 
@@ -378,7 +540,7 @@ export default async function handler(req, res) {
 
     if (!/(^|\.)douyin\.com$|(^|\.)iesdouyin\.com$/i.test(parsed.hostname)) {
       return res.status(400).json({
-        error: "仅支持抖音链接。"
+        error: "暂不支持该平台链接。"
       });
     }
 
@@ -547,7 +709,6 @@ export default async function handler(req, res) {
       firstUrl(video.play_addr) ||
       firstUrl(video.download_addr);
 
-    // 返回图文作品
     if (images.length > 0) {
       return res.status(200).json({
         type: "images",
@@ -558,7 +719,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // 返回普通视频
     if (rawVideo) {
       return res.status(200).json({
         type: "video",
@@ -577,7 +737,7 @@ export default async function handler(req, res) {
     );
 
   } catch (e) {
-    console.error("Douyin parse error:", e);
+    console.error("Media parse error:", e);
 
     return res.status(502).json({
       error: e.message || "解析服务暂时不可用，请稍后重试。"
