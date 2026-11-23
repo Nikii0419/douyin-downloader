@@ -1,32 +1,32 @@
 
 function extractRouterData(html) {
-  const marker = "window._ROUTER_DATA";
-  const markerIndex = html.indexOf(marker);
+  const idx = html.indexOf("_ROUTER_DATA");
+  if (idx < 0) return null;
 
-  if (markerIndex === -1) return null;
+  const eq = html.indexOf("=", idx);
+  if (eq < 0) return null;
 
-  const start = html.indexOf("{", markerIndex);
-  if (start === -1) return null;
+  const start = html.indexOf("{", eq);
+  if (start < 0) return null;
 
   let depth = 0;
   let inString = false;
   let escaped = false;
 
   for (let i = start; i < html.length; i++) {
-    const char = html[i];
+    const c = html[i];
 
     if (inString) {
       if (escaped) escaped = false;
-      else if (char === "\\") escaped = true;
-      else if (char === '"') inString = false;
+      else if (c === "\\") escaped = true;
+      else if (c === '"') inString = false;
       continue;
     }
 
-    if (char === '"') inString = true;
-    else if (char === "{") depth++;
-    else if (char === "}") {
+    if (c === '"') inString = true;
+    else if (c === "{") depth++;
+    else if (c === "}") {
       depth--;
-
       if (depth === 0) {
         try {
           return JSON.parse(html.slice(start, i + 1));
@@ -40,63 +40,64 @@ function extractRouterData(html) {
   return null;
 }
 
-function findVideoItem(data) {
-  if (!data || typeof data !== "object") return null;
+function firstUrl(obj) {
+  const urls = obj?.url_list || [];
+  const url = urls.find(
+    u => typeof u === "string" && /^https?:|^\/\//i.test(u)
+  );
 
-  const visited = new Set();
+  if (!url) return "";
+  return url.startsWith("//") ? "https:" + url : url;
+}
+
+function findAweme(data) {
+  const loaderData = data?.loaderData || {};
+  const diagnostics = [];
+
+  // 优先按抖音分享页的真实数据结构提取
+  for (const [key, page] of Object.entries(loaderData)) {
+    const result = page?.videoInfoRes;
+    const items = result?.item_list || [];
+
+    if (items.length) {
+      return { item: items[0], diagnostics };
+    }
+
+    diagnostics.push({
+      key,
+      fields: Object.keys(page || {}),
+      status: result?.status_code ?? null
+    });
+  }
+
+  // 兼容其他嵌套结构
+  const seen = new Set();
   const stack = [data];
 
-  function isVideoItem(obj) {
-    if (!obj || typeof obj !== "object") return false;
-
-    const video = obj.video;
-
-    return Boolean(
-      video &&
-      (
-        video.play_addr?.url_list?.length ||
-        video.download_addr?.url_list?.length
-      )
-    );
-  }
-
   while (stack.length) {
-    const current = stack.pop();
+    const obj = stack.pop();
 
-    if (!current || typeof current !== "object") continue;
-    if (visited.has(current)) continue;
+    if (!obj || typeof obj !== "object" || seen.has(obj)) continue;
+    seen.add(obj);
 
-    visited.add(current);
-
-    if (isVideoItem(current)) return current;
-
-    const candidates = [
-      current.aweme_detail,
-      current.awemeDetail,
-      current.videoInfoRes?.aweme_detail,
-      current.videoInfoRes?.item_list?.[0],
-      current.item,
-      current.itemInfo
-    ];
-
-    for (const item of candidates) {
-      if (isVideoItem(item)) return item;
+    if (
+      obj.aweme_id &&
+      (
+        obj.video ||
+        (Array.isArray(obj.images) && obj.images.length)
+      )
+    ) {
+      return { item: obj, diagnostics };
     }
 
-    if (Array.isArray(current.item_list)) {
-      for (const item of current.item_list) {
-        if (isVideoItem(item)) return item;
-      }
-    }
-
-    for (const value of Object.values(current)) {
-      if (value && typeof value === "object") {
-        stack.push(value);
-      }
+    if (Array.isArray(obj)) {
+      stack.push(...obj);
+    } else {
+      stack.push(...Object.values(obj));
     }
   }
 
-  return null;
+  return { item: null, diagnostics };
 }
 
 export default async function handler(req, res) {
@@ -120,8 +121,8 @@ export default async function handler(req, res) {
     }
 
     const urls = input.match(/https?:\/\/[^\s，。]+/g) || [];
-    const candidate = urls.find(url =>
-      /douyin\.com|iesdouyin\.com/i.test(url)
+    const candidate = urls.find(u =>
+      /douyin\.com|iesdouyin\.com/i.test(u)
     );
 
     if (!candidate) {
@@ -135,14 +136,13 @@ export default async function handler(req, res) {
     }
 
     const headers = {
-      "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+      "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
       "Referer": "https://www.douyin.com/",
       "Accept": "text/html,application/xhtml+xml,application/json,*/*",
       "Accept-Language": "zh-CN,zh;q=0.9"
     };
 
     const redirect = await fetch(candidate, {
-      method: "GET",
       redirect: "follow",
       headers
     });
@@ -154,8 +154,8 @@ export default async function handler(req, res) {
     const finalUrl = redirect.url || candidate;
 
     let awemeId =
-      finalUrl.match(/\/(?:video|note|share\/video)\/(\d+)/)?.[1] ||
-      finalUrl.match(/[?&](?:modal_id|aweme_id)=(\d+)/)?.[1] ||
+      finalUrl.match(/\/(?:video|note|slides)\/(\d+)/)?.[1] ||
+      finalUrl.match(/[?&](?:modal_id|aweme_id|item_ids)=(\d+)/)?.[1] ||
       input.match(/(?:视频|作品)?\s*(\d{15,20})/)?.[1];
 
     const initialHtml = await redirect.text();
@@ -163,64 +163,83 @@ export default async function handler(req, res) {
     if (!awemeId) {
       awemeId =
         initialHtml.match(/"aweme_id"\s*:\s*"(\d+)"/)?.[1] ||
-        initialHtml.match(/\/video\/(\d+)/)?.[1] ||
-        initialHtml.match(/modal_id["']?\s*[:=]\s*["']?(\d+)/)?.[1];
+        initialHtml.match(/\/(?:video|note|slides)\/(\d+)/)?.[1];
     }
 
     if (!awemeId) {
-      throw new Error("无法获取视频 ID，请确认分享链接有效。");
+      throw new Error("无法获取作品 ID，请确认分享链接有效。");
     }
 
+    const path = new URL(finalUrl).pathname;
+    const kind = /\/(?:note|slides)\//.test(path) ? "note" : "video";
+
     const sharePage =
-      `https://www.iesdouyin.com/share/video/${awemeId}/?from_ssr=1`;
+      `https://www.iesdouyin.com/share/${kind}/${awemeId}/`;
 
     const pageRes = await fetch(sharePage, {
-      method: "GET",
       redirect: "follow",
       headers
     });
 
     if (!pageRes.ok) {
-      throw new Error(`视频页面访问失败，HTTP ${pageRes.status}`);
+      throw new Error(`作品页面访问失败，HTTP ${pageRes.status}`);
     }
 
     const html = await pageRes.text();
 
     if (!html || html.length < 100) {
-      throw new Error("抖音返回的页面内容为空。");
+      throw new Error("抖音返回的作品页面内容为空。");
     }
 
     const routerData = extractRouterData(html);
 
     if (!routerData) {
-      throw new Error("没有找到页面内嵌数据，可能受到访问限制。");
+      throw new Error("没有找到页面作品数据，可能触发抖音访问限制。");
     }
 
-    const item = findVideoItem(routerData);
+    const found = findAweme(routerData);
+    const item = found.item;
 
     if (!item) {
-      throw new Error("页面中没有找到可用的视频详情数据。");
+      console.error("Douyin loaderData diagnostics:", found.diagnostics);
+      throw new Error(
+        "没有找到作品详情。抖音页面数据结构可能已变化，或当前访问受到限制。"
+      );
     }
+
+    const images = (item.images || [])
+      .map(image => firstUrl(image))
+      .filter(Boolean);
 
     const video = item.video || {};
+    const rawVideo =
+      firstUrl(video.play_addr) ||
+      firstUrl(video.download_addr);
 
-    const rawUrl =
-      video.play_addr?.url_list?.[0] ||
-      video.download_addr?.url_list?.[0];
-
-    if (!rawUrl) {
-      throw new Error("已找到视频详情，但没有获取到视频地址。");
+    if (images.length > 0) {
+      return res.status(200).json({
+        type: "images",
+        description: item.desc || "抖音图文作品",
+        author: item.author?.nickname || "",
+        cover: firstUrl(video.cover) || images[0],
+        images
+      });
     }
 
-    return res.status(200).json({
-      videoUrl: rawUrl.replace("/playwm/", "/play/"),
-      description: item.desc || "抖音视频",
-      author: item.author?.nickname || "",
-      cover:
-        video.cover?.url_list?.[0] ||
-        video.origin_cover?.url_list?.[0] ||
-        ""
-    });
+    if (rawVideo) {
+      return res.status(200).json({
+        type: "video",
+        videoUrl: rawVideo.replace("/playwm/", "/play/"),
+        description: item.desc || "抖音视频",
+        author: item.author?.nickname || "",
+        cover:
+          firstUrl(video.cover) ||
+          firstUrl(video.origin_cover) ||
+          ""
+      });
+    }
+
+    throw new Error("已找到作品，但没有获取到可下载的视频或图片地址。");
 
   } catch (e) {
     console.error("Douyin parse error:", e);
