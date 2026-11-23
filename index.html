@@ -9,7 +9,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Douyin Tools">
 <title>Douyin Tools · 视频解析</title>
-
 <style>
 :root{
   color-scheme:dark;
@@ -31,10 +30,7 @@ body{
   padding:env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));
 }
 .wrap{max-width:520px;margin:0 auto}
-.top{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:22px 3px 27px;
-}
+.top{display:flex;align-items:center;justify-content:space-between;padding:22px 3px 27px}
 .brand{display:flex;gap:12px;align-items:center}
 .logo{
   width:44px;height:44px;border:1px solid var(--line);
@@ -47,125 +43,83 @@ body{
 .sub{font-size:12px;color:var(--muted);margin-top:4px}
 .status{
   font-size:11px;padding:8px 11px;border:1px solid var(--line);
-  border-radius:99px;background:#ffffff0b;color:var(--muted);
-  white-space:nowrap;
+  border-radius:99px;background:#ffffff0b;color:var(--muted);white-space:nowrap;
 }
-.dot{
-  display:inline-block;width:7px;height:7px;border-radius:50%;
-  background:#858995;margin-right:6px;
-}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#858995;margin-right:6px}
 .status.live{color:#b8f4d7}
-.status.live .dot{
-  background:var(--green);box-shadow:0 0 10px #45d69a99;
-}
+.status.live .dot{background:var(--green);box-shadow:0 0 10px #45d69a99}
 .hero{padding:17px 3px 22px}
-.eyebrow{
-  font-size:11px;letter-spacing:2px;color:var(--green);
-  font-weight:700;
-}
-h1{
-  font-size:36px;line-height:1.18;letter-spacing:-1.5px;
-  margin:13px 0 10px;font-weight:750;
-}
-.intro{
-  color:var(--muted);font-size:13px;line-height:1.7;
-  margin:0;max-width:330px;
-}
+.eyebrow{font-size:11px;letter-spacing:2px;color:var(--green);font-weight:700}
+h1{font-size:36px;line-height:1.18;letter-spacing:-1.5px;margin:13px 0 10px;font-weight:750}
+.intro{color:var(--muted);font-size:13px;line-height:1.7;margin:0;max-width:340px}
 .glass{
   background:linear-gradient(145deg,rgba(255,255,255,.13),rgba(255,255,255,.045));
   border:1px solid var(--line);border-radius:25px;
   box-shadow:inset 0 1px 0 #ffffff12,0 12px 32px #0005;
-  backdrop-filter:blur(24px);
-  -webkit-backdrop-filter:blur(24px);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
 }
 .section{margin-top:14px;padding:19px 17px}
-.section-title{
-  display:flex;align-items:center;justify-content:space-between;
-  font-size:15px;font-weight:700;margin-bottom:14px;
-}
+.section-title{display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:700;margin-bottom:14px}
 .hint{font-size:11px;color:var(--muted);font-weight:400}
 textarea{
   display:block;width:100%;min-height:125px;resize:vertical;
-  background:#090b0f;border:1px solid #ffffff19;
-  border-radius:16px;color:white;padding:15px;
-  font:14px/1.65 -apple-system,BlinkMacSystemFont,sans-serif;
-  outline:none;
+  background:#090b0f;border:1px solid #ffffff19;border-radius:16px;
+  color:white;padding:15px;font:14px/1.65 -apple-system,BlinkMacSystemFont,sans-serif;outline:none;
 }
 textarea:focus{border-color:#45d69a88}
 textarea::placeholder{color:#777d88}
 button{
   border:1px solid #ffffff20;color:#eee;border-radius:14px;
-  padding:13px 15px;font-size:13px;font-weight:650;
-  cursor:pointer;transition:.2s;
+  padding:13px 15px;font-size:13px;font-weight:650;cursor:pointer;transition:.2s;
 }
 button:disabled{opacity:.55;cursor:wait}
-.primary{
-  background:linear-gradient(135deg,#65e7ad,#35bd86);
-  color:#07150f;border:0;
-  box-shadow:0 5px 20px #45d69a20;
-}
+.primary{background:linear-gradient(135deg,#65e7ad,#35bd86);color:#07150f;border:0;box-shadow:0 5px 20px #45d69a20}
 .parse-btn{width:100%;margin-top:13px;padding:16px;font-size:15px}
 .secondary{background:#ffffff12}
 .statusbox{
-  display:none;margin-top:13px;padding:13px 14px;
-  background:#090b0f;border:1px solid #ffffff12;
-  border-radius:14px;font-size:12px;line-height:1.6;
-  color:#d7d9df;overflow-wrap:anywhere;
+  display:none;margin-top:13px;padding:13px 14px;background:#090b0f;
+  border:1px solid #ffffff12;border-radius:14px;font-size:12px;
+  line-height:1.6;color:#d7d9df;overflow-wrap:anywhere;
 }
 .statusbox.show{display:block}
 .result{display:none;margin-top:15px}
 .result.show{display:block}
-.cover{
-  width:100%;max-height:270px;object-fit:cover;
-  border-radius:16px;background:#090b0f;
-}
-.meta{font-size:15px;font-weight:700;line-height:1.55;margin-top:14px}
+.cover{width:100%;max-height:270px;object-fit:cover;border-radius:16px;background:#090b0f}
+.meta{font-size:15px;font-weight:700;line-height:1.55;margin-top:14px;overflow-wrap:anywhere}
 .author{font-size:11px;color:var(--muted);margin-top:5px}
-video{
-  width:100%;max-height:360px;border-radius:16px;
-  background:#000;margin-top:14px;
-}
-.actions{
-  display:grid;grid-template-columns:1fr 1fr;
-  gap:10px;margin-top:13px;
-}
+video{width:100%;max-height:360px;border-radius:16px;background:#000;margin-top:14px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}
 .actions button{padding:14px 7px;font-size:12px}
-.info-row{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:12px 0;border-bottom:1px solid #ffffff13;
+.image-panel{margin-top:16px}
+.image-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.image-count{font-size:12px;color:var(--green)}
+.image-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.image-item{min-width:0;overflow:hidden;border-radius:14px;background:#090b0f;border:1px solid #ffffff18}
+.image-item img{width:100%;display:block;aspect-ratio:1/1;object-fit:cover}
+.image-item a{
+  display:block;padding:11px 5px;text-align:center;color:var(--green);
+  font-size:12px;text-decoration:none;border-top:1px solid #ffffff12;
 }
+.zip-btn{width:100%;margin-top:13px;padding:15px;font-size:14px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #ffffff13}
 .info-row:last-child{border:0;padding-bottom:2px}
 .info-label{font-size:12px;color:#e5e6e9}
 .info-desc{font-size:10px;color:var(--muted);margin-top:4px}
 .info-value{font-size:12px;color:var(--green)}
-.foot{
-  text-align:center;font-size:10px;color:#737782;
-  line-height:1.8;padding:23px 8px 5px;
-}
+.foot{text-align:center;font-size:10px;color:#737782;line-height:1.8;padding:23px 8px 5px}
 .toast{
-  position:fixed;left:16px;right:16px;
-  bottom:calc(18px + env(safe-area-inset-bottom));
-  max-width:480px;margin:auto;padding:14px 16px;
-  border-radius:17px;background:#24272e;
-  border:1px solid #ffffff25;box-shadow:0 12px 40px #0009;
-  display:none;font-size:13px;line-height:1.5;
+  position:fixed;left:16px;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));
+  max-width:480px;margin:auto;padding:14px 16px;border-radius:17px;
+  background:#24272e;border:1px solid #ffffff25;box-shadow:0 12px 40px #0009;
+  display:none;font-size:13px;line-height:1.5;z-index:10;
 }
 .toast.show{display:block;animation:up .25s ease}
-@keyframes up{
-  from{transform:translateY(10px);opacity:0}
-  to{transform:none;opacity:1}
-}
-@media(max-width:360px){
-  body{padding-left:11px;padding-right:11px}
-  .section{padding:16px 13px}
-  h1{font-size:32px}
-}
+@keyframes up{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@media(max-width:360px){body{padding-left:11px;padding-right:11px}.section{padding:16px 13px}h1{font-size:32px}}
 </style>
 </head>
-
 <body>
 <main class="wrap">
-
 <header class="top">
   <div class="brand">
     <div class="logo">◇</div>
@@ -181,46 +135,51 @@ video{
 
 <section class="hero">
   <div class="eyebrow">VIDEO DOWNLOADER</div>
-  <h1>抖音视频<br>解析下载</h1>
-  <p class="intro">粘贴分享链接，快速提取视频地址。为 iPhone Safari 优化。</p>
+  <h1>抖音作品<br>解析下载</h1>
+  <p class="intro">支持普通视频与图文作品，粘贴分享链接即可解析。为 iPhone Safari 优化。</p>
 </section>
 
 <section class="glass section">
   <div class="section-title">
-    <span>视频链接</span>
+    <span>作品链接</span>
     <span class="hint">DOUYIN LINK</span>
   </div>
-
-  <textarea id="share" placeholder="复制抖音视频分享链接，粘贴到这里……"></textarea>
-
-  <button class="primary parse-btn" id="parse">
-    ↗　开始解析
-  </button>
-
+  <textarea id="share" placeholder="复制抖音视频或图文作品分享文案，粘贴到这里……"></textarea>
+  <button class="primary parse-btn" id="parse">↗　开始解析</button>
   <div class="statusbox" id="status" role="status"></div>
 </section>
 
 <section class="glass section result" id="result">
   <div class="section-title">
-    <span>视频信息</span>
+    <span id="resultHeading">作品信息</span>
     <span class="hint">解析结果</span>
   </div>
-
-  <img class="cover" id="cover" alt="视频封面" hidden>
+  <img class="cover" id="cover" alt="作品封面" hidden>
   <div class="meta" id="title"></div>
   <div class="author" id="author"></div>
 
-  <video id="player" controls playsinline webkit-playsinline></video>
-
-  <div class="actions">
-    <button class="primary" id="download">↓　下载视频</button>
-    <button class="secondary" id="copy">复制视频地址</button>
+  <div id="videoPanel" hidden>
+    <video id="player" controls playsinline webkit-playsinline></video>
+    <div class="actions">
+      <button class="primary" id="download">↓　下载视频</button>
+      <button class="secondary" id="copy">复制视频地址</button>
+    </div>
+    <p class="hint" style="line-height:1.8;margin-top:14px">
+      iPhone 下载后通常进入「文件」App 的下载项目。如需保存到照片，请打开视频文件，点击分享，再选择「存储视频」。
+    </p>
   </div>
 
-  <p class="hint" style="line-height:1.8;margin-top:14px">
-    iPhone 下载后通常进入「文件」App 的下载项目。
-    如需保存到照片，请打开视频文件，点击分享，再选择「存储视频」。
-  </p>
+  <div class="image-panel" id="imagePanel" hidden>
+    <div class="image-head">
+      <span style="font-size:13px;font-weight:650">图文内容</span>
+      <span class="image-count" id="imageCount"></span>
+    </div>
+    <div class="image-grid" id="imageGrid"></div>
+    <button class="primary zip-btn" id="zipDownload">↓　打包下载全部图片（ZIP）</button>
+    <p class="hint" style="line-height:1.8;margin-top:12px">
+      下载完成后，可在 iPhone「文件」App 的下载项目中找到 ZIP 文件，点击即可解压。
+    </p>
+  </div>
 </section>
 
 <section class="glass section">
@@ -229,46 +188,35 @@ video{
     <span class="hint">HOW TO USE</span>
   </div>
   <div class="info-row">
-    <div>
-      <div class="info-label">01 · 复制链接</div>
-      <div class="info-desc">在抖音视频页面点击分享 → 复制链接</div>
-    </div>
+    <div><div class="info-label">01 · 复制链接</div><div class="info-desc">在抖音作品页面点击分享 → 复制链接</div></div>
     <div class="info-value">COPY</div>
   </div>
   <div class="info-row">
-    <div>
-      <div class="info-label">02 · 解析视频</div>
-      <div class="info-desc">粘贴分享文案或链接，点击开始解析</div>
-    </div>
+    <div><div class="info-label">02 · 解析作品</div><div class="info-desc">粘贴分享文案或链接，点击开始解析</div></div>
     <div class="info-value">PARSE</div>
   </div>
   <div class="info-row">
-    <div>
-      <div class="info-label">03 · 下载保存</div>
-      <div class="info-desc">预览确认后下载视频</div>
-    </div>
+    <div><div class="info-label">03 · 下载保存</div><div class="info-desc">视频可单独下载，图文可打包为 ZIP</div></div>
     <div class="info-value">SAVE</div>
   </div>
 </section>
 
 <footer class="foot">
   DOUYIN TOOLS · MOBILE EDITION<br>
-  仅供下载本人拥有或已获授权的视频，请遵守平台规则及版权法律。
+  仅供下载本人拥有或已获授权的内容，请遵守平台规则及版权法律。
 </footer>
-
 </main>
-
 <div class="toast" id="toast"></div>
 
 <script>
 const $=id=>document.getElementById(id);
 let currentUrl="";
+let currentImages=[];
 
 function message(s){
   $("status").textContent=s;
   $("status").classList.add("show");
 }
-
 function toast(s){
   const t=$("toast");
   t.textContent=s;
@@ -276,25 +224,38 @@ function toast(s){
   clearTimeout(toast.timer);
   toast.timer=setTimeout(()=>t.classList.remove("show"),3500);
 }
-
 function service(ok,text){
   $("serviceStatus").classList.toggle("live",ok);
   $("serviceText").textContent=text;
 }
+function clearResult(){
+  currentUrl="";
+  currentImages=[];
+  $("player").pause();
+  $("player").removeAttribute("src");
+  $("player").load();
+  $("videoPanel").hidden=true;
+  $("imagePanel").hidden=true;
+  $("imageGrid").replaceChildren();
+  $("cover").hidden=true;
+}
+function safeImageUrl(url){
+  try{
+    const u=new URL(url);
+    return u.protocol==="https:" ? u.href : "";
+  }catch{return "";}
+}
 
 $("parse").addEventListener("click",async()=>{
   const raw=$("share").value.trim();
-
-  if(!raw){
-    message("请先粘贴抖音分享链接或分享文案。");
-    return;
-  }
+  if(!raw){message("请先粘贴抖音分享链接或分享文案。");return;}
 
   const btn=$("parse");
   btn.disabled=true;
   btn.textContent="正在解析…";
+  clearResult();
   $("result").classList.remove("show");
-  message("正在识别链接并获取视频信息，请稍候…");
+  message("正在识别链接并获取作品信息，请稍候…");
   service(false,"正在解析");
 
   try{
@@ -303,42 +264,59 @@ $("parse").addEventListener("click",async()=>{
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({text:raw})
     });
-
     const responseText=await r.text();
     let data;
+    try{data=JSON.parse(responseText);}
+    catch{throw new Error("服务器返回内容异常（HTTP "+r.status+"），请稍后重试。");}
+    if(!r.ok)throw new Error(data.error||"解析失败，请检查链接。");
 
-    try{
-      data=JSON.parse(responseText);
-    }catch{
-      throw new Error(
-        "服务器返回内容异常（HTTP "+r.status+"），请稍后重试。"
-      );
-    }
-
-    if(!r.ok||!data.videoUrl){
-      throw new Error(data.error||"解析失败，请检查链接。");
-    }
-
-    currentUrl=data.videoUrl;
-
-    $("title").textContent=data.description||"抖音视频";
+    $("title").textContent=data.description||"抖音作品";
     $("author").textContent=data.author?"作者："+data.author:"";
 
     if(data.cover){
       $("cover").src=data.cover;
       $("cover").hidden=false;
-    }else{
-      $("cover").hidden=true;
     }
 
-    $("player").src="/api/download?url="+
-      encodeURIComponent(currentUrl)+"&inline=1";
+    if(data.type==="images"&&Array.isArray(data.images)&&data.images.length){
+      currentImages=data.images.map(safeImageUrl).filter(Boolean);
+      if(!currentImages.length)throw new Error("作品图片地址无效，请重新解析。");
+
+      $("resultHeading").textContent="图文作品";
+      $("imageCount").textContent=currentImages.length+" 张图片";
+      currentImages.forEach((url,index)=>{
+        const item=document.createElement("div");
+        item.className="image-item";
+
+        const img=document.createElement("img");
+        img.src=url;
+        img.alt="作品图片 "+(index+1);
+        img.loading="lazy";
+
+        const link=document.createElement("a");
+        link.href="/api/download?url="+encodeURIComponent(url)+"&index="+(index+1);
+        link.textContent="↓ 下载图片 "+(index+1);
+
+        item.append(img,link);
+        $("imageGrid").append(item);
+      });
+      $("imagePanel").hidden=false;
+      message("图文解析成功，共 "+currentImages.length+" 张图片。");
+    }else if(data.videoUrl){
+      currentUrl=safeImageUrl(data.videoUrl);
+      if(!currentUrl)throw new Error("视频地址无效，请重新解析。");
+
+      $("resultHeading").textContent="视频作品";
+      $("player").src="/api/download?url="+encodeURIComponent(currentUrl)+"&inline=1";
+      $("videoPanel").hidden=false;
+      message("视频解析成功，可以预览或下载。");
+    }else{
+      throw new Error("没有获取到可用的视频或图片内容。");
+    }
 
     $("result").classList.add("show");
-    message("解析成功，可以预览或下载。");
     service(true,"解析成功");
     $("result").scrollIntoView({behavior:"smooth",block:"start"});
-
   }catch(e){
     message(e.message||"网络异常，请稍后重试。");
     service(false,"解析异常");
@@ -355,23 +333,50 @@ $("download").addEventListener("click",()=>{
 
 $("copy").addEventListener("click",async()=>{
   if(!currentUrl)return;
-
   try{
     await navigator.clipboard.writeText(currentUrl);
     toast("视频地址已复制");
+  }catch(e){toast("复制失败，请检查浏览器权限");}
+});
+
+$("zipDownload").addEventListener("click",async()=>{
+  if(!currentImages.length)return;
+  const btn=$("zipDownload");
+  btn.disabled=true;
+  btn.textContent="正在打包图片…";
+  try{
+    const response=await fetch("/api/zip",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({images:currentImages})
+    });
+    if(!response.ok){
+      const errorText=await response.text();
+      throw new Error(errorText||"ZIP 打包失败，请稍后重试。");
+    }
+    const blob=await response.blob();
+    const blobUrl=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=blobUrl;
+    a.download="douyin-images.zip";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(blobUrl),60000);
+    toast("图片 ZIP 已生成，正在下载");
   }catch(e){
-    toast("复制失败，请检查浏览器权限");
+    toast(e.message||"打包失败，请稍后重试。");
+  }finally{
+    btn.disabled=false;
+    btn.textContent="↓　打包下载全部图片（ZIP）";
   }
 });
 
 $("share").addEventListener("input",()=>{
   $("status").classList.remove("show");
 });
-
 $("player").addEventListener("error",()=>{
-  if(currentUrl){
-    toast("视频预览暂时无法播放，可以尝试下载。");
-  }
+  if(currentUrl)toast("视频预览暂时无法播放，可以尝试下载。");
 });
 </script>
 </body>
