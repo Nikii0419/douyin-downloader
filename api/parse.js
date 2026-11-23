@@ -336,66 +336,137 @@ async function fetchAwemeDetail(awemeId) {
   return item;
 }
 
-// B站解析
+// ================================
+// B站解析：支持短链接、BV长链接、AV长链接
+// ================================
 async function parseBilibili(inputUrl) {
   const parsedInput = new URL(inputUrl);
   const inputHost = parsedInput.hostname.toLowerCase();
 
-  if (
-    inputHost !== "b23.tv" &&
-    inputHost !== "bilibili.com" &&
-    !inputHost.endsWith(".bilibili.com")
-  ) {
+  const isShortLink = inputHost === "b23.tv";
+
+  const isLongLink =
+    inputHost === "bilibili.com" ||
+    inputHost.endsWith(".bilibili.com");
+
+  if (!isShortLink && !isLongLink) {
     throw new Error("不是有效的 B站链接。");
   }
 
-  // 访问短链接并跟随跳转
-  const resolved = await fetch(inputUrl, {
-    redirect: "follow",
-    headers: {
-      "User-Agent": MOBILE_UA,
-      "Referer": "https://www.bilibili.com/",
-      "Accept": "text/html,application/json,*/*"
-    },
-    signal: AbortSignal.timeout(20000)
-  });
+  let finalUrl = inputUrl;
+  let bvid = "";
+  let aid = "";
 
-  if (!resolved.ok) {
-    throw new Error("B站链接访问失败，HTTP " + resolved.status);
+  let pageNo = Math.max(
+    1,
+    Number(parsedInput.searchParams.get("p")) || 1
+  );
+
+  // 先从原始链接提取 BV 号
+  const directBvid =
+    inputUrl.match(/\/video\/(BV[0-9A-Za-z]+)/i) ||
+    inputUrl.match(/\b(BV[0-9A-Za-z]{10})\b/i);
+
+  // 同时兼容 AV 号
+  const directAid =
+    inputUrl.match(/\/video\/av(\d+)/i) ||
+    inputUrl.match(/\bav(\d+)\b/i);
+
+  if (directBvid) {
+    bvid = directBvid[1];
+  } else if (directAid) {
+    aid = directAid[1];
   }
 
-  const finalUrl = resolved.url || inputUrl;
-  const finalHost = new URL(finalUrl).hostname.toLowerCase();
+  // 长链接已经包含 BV/AV 号时，直接解析，不访问网页
+  // 短链接没有视频 ID 时，才请求跳转地址
+  if (!bvid && !aid) {
+    if (!isShortLink) {
+      throw new Error(
+        "长链接中没有识别到 BV 号或 AV 号，请确认是具体视频页面。"
+      );
+    }
 
-  if (
-    finalHost !== "bilibili.com" &&
-    !finalHost.endsWith(".bilibili.com")
-  ) {
-    throw new Error("B站短链接跳转到了非 B站地址，已停止解析。");
+    let resolved;
+
+    try {
+      resolved = await fetch(inputUrl, {
+        redirect: "follow",
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36",
+          "Referer": "https://www.bilibili.com/",
+          "Accept": "text/html,application/xhtml+xml,*/*"
+        },
+        signal: AbortSignal.timeout(20000)
+      });
+    } catch (e) {
+      throw new Error("B站短链接跳转失败：" + e.message);
+    }
+
+    if (!resolved.ok) {
+      throw new Error(
+        "B站短链接访问失败，HTTP " + resolved.status +
+        "。可以尝试使用视频长链接。"
+      );
+    }
+
+    finalUrl = resolved.url || inputUrl;
+
+    const finalHost = new URL(finalUrl).hostname.toLowerCase();
+
+    if (
+      finalHost !== "bilibili.com" &&
+      !finalHost.endsWith(".bilibili.com")
+    ) {
+      throw new Error("短链接没有跳转到有效的 B站视频页面。");
+    }
+
+    const finalParsed = new URL(finalUrl);
+
+    pageNo = Math.max(
+      1,
+      Number(finalParsed.searchParams.get("p")) || 1
+    );
+
+    const foundBvid =
+      finalUrl.match(/\/video\/(BV[0-9A-Za-z]+)/i) ||
+      finalUrl.match(/\b(BV[0-9A-Za-z]{10})\b/i);
+
+    const foundAid =
+      finalUrl.match(/\/video\/av(\d+)/i) ||
+      finalUrl.match(/\bav(\d+)\b/i);
+
+    if (foundBvid) {
+      bvid = foundBvid[1];
+    } else if (foundAid) {
+      aid = foundAid[1];
+    }
   }
 
-  // 提取 BV 号
-  const bvidMatch =
-    finalUrl.match(/\/video\/(BV[0-9A-Za-z]+)/i) ||
-    finalUrl.match(/\b(BV[0-9A-Za-z]{10})\b/i);
-
-  if (!bvidMatch) {
-    throw new Error("没有识别到 B站 BV 号，请确认分享的是公开视频。");
+  if (!bvid && !aid) {
+    throw new Error(
+      "没有识别到视频 BV 号或 AV 号，暂不支持该类型的 B站分享链接。"
+    );
   }
-
-  const bvid = bvidMatch[1];
-  const pageUrl = new URL(finalUrl);
-  const pageNo = Math.max(1, Number(pageUrl.searchParams.get("p")) || 1);
 
   const headers = {
-    "User-Agent": MOBILE_UA,
-    "Referer": "https://www.bilibili.com/video/" + bvid + "/",
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36",
+    "Referer": "https://www.bilibili.com/",
     "Accept": "application/json, text/plain, */*"
   };
 
   // 获取作品信息
-  const viewUrl = new URL("https://api.bilibili.com/x/web-interface/view");
-  viewUrl.searchParams.set("bvid", bvid);
+  const viewUrl = new URL(
+    "https://api.bilibili.com/x/web-interface/view"
+  );
+
+  if (bvid) {
+    viewUrl.searchParams.set("bvid", bvid);
+  } else {
+    viewUrl.searchParams.set("aid", aid);
+  }
 
   const viewRes = await fetch(viewUrl.toString(), {
     headers,
@@ -403,7 +474,9 @@ async function parseBilibili(inputUrl) {
   });
 
   if (!viewRes.ok) {
-    throw new Error("B站作品信息获取失败，HTTP " + viewRes.status);
+    throw new Error(
+      "B站作品信息获取失败，HTTP " + viewRes.status
+    );
   }
 
   const viewJson = await viewRes.json();
@@ -427,31 +500,47 @@ async function parseBilibili(inputUrl) {
   }
 
   // 获取视频播放地址
-  const playUrl = new URL("https://api.bilibili.com/x/player/playurl");
+  const playUrl = new URL(
+    "https://api.bilibili.com/x/player/playurl"
+  );
 
-  playUrl.search = new URLSearchParams({
-    bvid,
-    cid: String(selectedPage.cid),
-    qn: "32",
-    fnval: "1",
-    fnver: "0",
-    fourk: "0",
-    platform: "html5",
-    high_quality: "0"
-  }).toString();
+  if (bvid) {
+    playUrl.searchParams.set("bvid", bvid);
+  } else {
+    playUrl.searchParams.set("avid", String(item.aid || aid));
+  }
+
+  playUrl.searchParams.set("cid", String(selectedPage.cid));
+  playUrl.searchParams.set("qn", "32");
+  playUrl.searchParams.set("fnval", "1");
+  playUrl.searchParams.set("fnver", "0");
+  playUrl.searchParams.set("fourk", "0");
+  playUrl.searchParams.set("platform", "html5");
+  playUrl.searchParams.set("high_quality", "0");
 
   const playRes = await fetch(playUrl.toString(), {
-    headers,
+    headers: {
+      ...headers,
+      "Referer":
+        "https://www.bilibili.com/video/" +
+        (item.bvid || bvid || "") + "/"
+    },
     signal: AbortSignal.timeout(20000)
   });
 
   if (!playRes.ok) {
-    throw new Error("B站播放地址获取失败，HTTP " + playRes.status);
+    throw new Error(
+      "B站播放地址获取失败，HTTP " + playRes.status
+    );
   }
 
   const playJson = await playRes.json();
   const durl = playJson?.data?.durl?.[0];
-  const mediaUrl = durl?.url || durl?.backup_url?.[0] || "";
+
+  const mediaUrl =
+    durl?.url ||
+    durl?.backup_url?.[0] ||
+    "";
 
   if (playJson.code !== 0 || !mediaUrl) {
     throw new Error(
@@ -475,7 +564,9 @@ async function parseBilibili(inputUrl) {
   };
 }
 
+// ================================
 // 主解析入口
+// ================================
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -581,6 +672,7 @@ export default async function handler(req, res) {
     }
 
     const path = new URL(finalUrl).pathname;
+
     const kind = /\/(?:note|slides)\//.test(path)
       ? "note"
       : "video";
