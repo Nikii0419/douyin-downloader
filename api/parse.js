@@ -1,37 +1,93 @@
 
-function extractRouterData(html) {
-  const idx = html.indexOf("_ROUTER_DATA");
-  if (idx < 0) return null;
+const MOBILE_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
 
-  const eq = html.indexOf("=", idx);
-  if (eq < 0) return null;
+const BASE_HEADERS = {
+  "User-Agent": MOBILE_UA,
+  "Referer": "https://www.iesdouyin.com/",
+  "Accept": "text/html,application/xhtml+xml,application/json,*/*",
+  "Accept-Language": "zh-CN,zh;q=0.9"
+};
 
-  const start = html.indexOf("{", eq);
-  if (start < 0) return null;
-
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-
-  for (let i = start; i < html.length; i++) {
-    const c = html[i];
-
-    if (inString) {
-      if (escaped) escaped = false;
-      else if (c === "\\") escaped = true;
-      else if (c === '"') inString = false;
-      continue;
+// 提取 ttwid 游客 Cookie
+async function getTtwid() {
+  const response = await fetch(
+    "https://ttwid.bytedance.com/ttwid/union/register/",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": MOBILE_UA,
+        "Referer": "https://www.douyin.com/"
+      },
+      body: JSON.stringify({
+        region: "cn",
+        aid: 1768,
+        needFid: false,
+        service: "www.douyin.com",
+        migrate_info: {
+          ticket: "",
+          source: "node"
+        },
+        cbUrlProtocol: "https",
+        union: true
+      }),
+      signal: AbortSignal.timeout(15000)
     }
+  );
 
-    if (c === '"') inString = true;
-    else if (c === "{") depth++;
-    else if (c === "}") {
-      depth--;
-      if (depth === 0) {
-        try {
-          return JSON.parse(html.slice(start, i + 1));
-        } catch {
-          return null;
+  const cookieHeaders =
+    typeof response.headers.getSetCookie === "function"
+      ? response.headers.getSetCookie()
+      : [response.headers.get("set-cookie") || ""];
+
+  for (const header of cookieHeaders) {
+    const match = header.match(/(?:^|[,;\s])ttwid=([^;,\s]+)/i);
+    if (match) return match[1];
+  }
+
+  return "";
+}
+
+// 提取页面中的 JSON
+function extractRouterData(html) {
+  const markers = [
+    "_ROUTER_DATA",
+    "__UNIVERSAL_DATA_FOR_REHYDRATION__"
+  ];
+
+  for (const marker of markers) {
+    const idx = html.indexOf(marker);
+    if (idx < 0) continue;
+
+    const start = html.indexOf("{", idx);
+    if (start < 0) continue;
+
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+
+    for (let i = start; i < html.length; i++) {
+      const c = html[i];
+
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (c === "\\") escaped = true;
+        else if (c === '"') inString = false;
+        continue;
+      }
+
+      if (c === '"') inString = true;
+      else if (c === "{") depth++;
+      else if (c === "}") {
+        depth--;
+
+        if (depth === 0) {
+          try {
+            return JSON.parse(html.slice(start, i + 1));
+          } catch {
+            break;
+          }
         }
       }
     }
@@ -40,7 +96,6 @@ function extractRouterData(html) {
   return null;
 }
 
-// 从抖音返回的地址结构中提取 HTTPS 地址
 function normalizeUrl(value) {
   if (typeof value !== "string" || !value.trim()) return "";
 
@@ -67,13 +122,13 @@ function getUrlList(value) {
   }
 
   if (Array.isArray(value)) {
-    return value.flatMap(getUrlList);
+    return [...new Set(value.flatMap(getUrlList))];
   }
 
   if (typeof value === "object") {
     const result = [];
 
-    if (Array.isArray(value.url_list)) {
+    if (value.url_list) {
       result.push(...getUrlList(value.url_list));
     }
 
@@ -81,7 +136,7 @@ function getUrlList(value) {
       result.push(...getUrlList(value.url));
     }
 
-    if (value.uri && typeof value.uri === "string") {
+    if (typeof value.uri === "string") {
       const url = normalizeUrl(value.uri);
       if (url) result.push(url);
     }
@@ -92,7 +147,6 @@ function getUrlList(value) {
   return [];
 }
 
-// 优先取原图下载地址，再取原始图片对象，最后才回退普通图片地址
 function getOriginalImageUrl(image) {
   if (!image || typeof image !== "object") {
     return normalizeUrl(image);
@@ -112,7 +166,6 @@ function getOriginalImageUrl(image) {
     if (urls.length) return urls[0];
   }
 
-  // 兼容部分接口将原图地址放在其他字段的情况
   const fallback = [
     image.display_image,
     image.display_image_url,
@@ -133,23 +186,59 @@ function firstUrl(obj) {
 }
 
 function findAweme(data) {
-  const loaderData = data?.loaderData || {};
-  const diagnostics = [];
+  const seen = new Set();
+  const stack = [data];
 
-  for (const [key, page] of Object.entries(loaderData)) {
-    const result = page?.videoInfoRes;
-    const items = result?.item_list || [];
+  while (stack.length) {
+    const obj = stack.pop();
 
-    if (items.length) {
-      return { item: items[0], diagnostics };
+    if (!obj || typeof obj !== "object" || seen.has(obj)) {
+      continue;
     }
 
-    diagnostics.push({
-      key,
-      fields: Object.keys(page || {}),
-      status: result?.status_code ?? null
-    });
+    seen.add(obj);
+
+    if (Array.isArray(obj)) {
+      stack.push(...obj);
+      continue;
+    }
+
+    const items = obj.videoInfoRes?.item_list;
+
+    if (Array.isArray(items) && items.length) {
+      return items[0];
+    }
+
+    if (
+      obj.aweme_id &&
+      (
+        obj.video ||
+        obj.images ||
+        obj.image_post_info
+      )
+    ) {
+      return obj;
+    }
+
+    stack.push(...Object.values(obj));
   }
+
+  return null;
+}
+
+function findAwemeId(data, html, finalUrl) {
+  const fromUrl =
+    finalUrl.match(/\/(?:video|note|slides)\/(\d+)/)?.[1] ||
+    finalUrl.match(/[?&](?:modal_id|aweme_id|item_ids)=(\d+)/)?.[1];
+
+  if (fromUrl) return fromUrl;
+
+  const fromHtml =
+    html.match(/"aweme_id"\s*:\s*"(\d+)"/)?.[1] ||
+    html.match(/"itemId"\s*:\s*"(\d+)"/)?.[1] ||
+    html.match(/"lastPath"\s*:\s*"(\d+)"/)?.[1];
+
+  if (fromHtml) return fromHtml;
 
   const seen = new Set();
   const stack = [data];
@@ -157,27 +246,40 @@ function findAweme(data) {
   while (stack.length) {
     const obj = stack.pop();
 
-    if (!obj || typeof obj !== "object" || seen.has(obj)) continue;
-    seen.add(obj);
-
-    if (
-      obj.aweme_id &&
-      (
-        obj.video ||
-        (Array.isArray(obj.images) && obj.images.length)
-      )
-    ) {
-      return { item: obj, diagnostics };
+    if (!obj || typeof obj !== "object" || seen.has(obj)) {
+      continue;
     }
 
-    if (Array.isArray(obj)) {
-      stack.push(...obj);
-    } else {
+    seen.add(obj);
+
+    if (!Array.isArray(obj)) {
+      const id = obj.itemId || obj.lastPath || obj.aweme_id;
+
+      if (typeof id === "string" && /^\d{15,25}$/.test(id)) {
+        return id;
+      }
+
       stack.push(...Object.values(obj));
+    } else {
+      stack.push(...obj);
     }
   }
 
-  return { item: null, diagnostics };
+  return "";
+}
+
+async function fetchSharePage(url, cookie) {
+  const headers = { ...BASE_HEADERS };
+
+  if (cookie) {
+    headers.Cookie = "ttwid=" + cookie;
+  }
+
+  return fetch(url, {
+    redirect: "follow",
+    headers,
+    signal: AbortSignal.timeout(25000)
+  });
 }
 
 export default async function handler(req, res) {
@@ -218,26 +320,17 @@ export default async function handler(req, res) {
 
     const parsed = new URL(candidate);
 
-    if (
-      !/(^|\.)douyin\.com$|(^|\.)iesdouyin\.com$/i.test(
-        parsed.hostname
-      )
-    ) {
+    if (!/(^|\.)douyin\.com$|(^|\.)iesdouyin\.com$/i.test(parsed.hostname)) {
       return res.status(400).json({
         error: "仅支持抖音链接。"
       });
     }
 
-    const headers = {
-      "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
-      "Referer": "https://www.douyin.com/",
-      "Accept": "text/html,application/xhtml+xml,application/json,*/*",
-      "Accept-Language": "zh-CN,zh;q=0.9"
-    };
-
+    // 第一步：访问分享短链接，获取作品 ID
     const redirect = await fetch(candidate, {
       redirect: "follow",
-      headers
+      headers: BASE_HEADERS,
+      signal: AbortSignal.timeout(25000)
     });
 
     if (!redirect.ok) {
@@ -247,23 +340,25 @@ export default async function handler(req, res) {
     }
 
     const finalUrl = redirect.url || candidate;
-
-    let awemeId =
-      finalUrl.match(/\/(?:video|note|slides)\/(\d+)/)?.[1] ||
-      finalUrl.match(/[?&](?:modal_id|aweme_id|item_ids)=(\d+)/)?.[1] ||
-      input.match(/(?:视频|作品)?\s*(\d{15,20})/)?.[1];
-
     const initialHtml = await redirect.text();
+
+    let routerData = extractRouterData(initialHtml);
+
+    let awemeId = findAwemeId(
+      routerData,
+      initialHtml,
+      finalUrl
+    );
 
     if (!awemeId) {
       awemeId =
-        initialHtml.match(/"aweme_id"\s*:\s*"(\d+)"/)?.[1] ||
+        finalUrl.match(/\/(?:video|note|slides)\/(\d+)/)?.[1] ||
         initialHtml.match(/\/(?:video|note|slides)\/(\d+)/)?.[1];
     }
 
     if (!awemeId) {
       throw new Error(
-        "无法获取作品 ID，请确认分享链接有效。"
+        "无法识别作品 ID，请重新复制抖音分享链接。"
       );
     }
 
@@ -275,10 +370,18 @@ export default async function handler(req, res) {
     const sharePage =
       `https://www.iesdouyin.com/share/${kind}/${awemeId}/`;
 
-    const pageRes = await fetch(sharePage, {
-      redirect: "follow",
-      headers
-    });
+    // 第二步：申请游客 Cookie
+    let ttwid = "";
+
+    try {
+      ttwid = await getTtwid();
+    } catch (e) {
+      console.error("ttwid registration failed:", e.message);
+    }
+
+    // 第三步：携带 Cookie 请求作品页面
+    let pageRes = await fetchSharePage(sharePage, ttwid);
+    let html = await pageRes.text();
 
     if (!pageRes.ok) {
       throw new Error(
@@ -286,38 +389,59 @@ export default async function handler(req, res) {
       );
     }
 
-    const html = await pageRes.text();
+    routerData = extractRouterData(html);
+    let item = findAweme(routerData);
 
-    if (!html || html.length < 100) {
-      throw new Error(
-        "抖音返回的作品页面内容为空。"
-      );
+    // 第四步：如果第一次没有详情，重新申请 Cookie 再试一次
+    if (!item) {
+      try {
+        const newCookie = await getTtwid();
+
+        if (newCookie) {
+          ttwid = newCookie;
+        }
+      } catch (e) {
+        console.error("ttwid retry failed:", e.message);
+      }
+
+      pageRes = await fetchSharePage(sharePage, ttwid);
+      html = await pageRes.text();
+
+      if (!pageRes.ok) {
+        throw new Error(
+          `作品页面重试失败，HTTP ${pageRes.status}`
+        );
+      }
+
+      routerData = extractRouterData(html);
+      item = findAweme(routerData);
     }
-
-    const routerData = extractRouterData(html);
-
-    if (!routerData) {
-      throw new Error(
-        "没有找到页面作品数据，可能触发抖音访问限制。"
-      );
-    }
-
-    const found = findAweme(routerData);
-    const item = found.item;
 
     if (!item) {
       console.error(
-        "Douyin loaderData diagnostics:",
-        found.diagnostics
+        "Douyin page diagnostic:",
+        {
+          awemeId,
+          htmlLength: html.length,
+          hasRouterData: !!routerData,
+          hasVideoInfoRes: html.includes("videoInfoRes"),
+          hasItemList: html.includes("item_list"),
+          hasTtwid: !!ttwid
+        }
       );
 
       throw new Error(
-        "没有找到作品详情。抖音页面数据结构可能已变化，或当前访问受到限制。"
+        "抖音已返回页面，但仍未提供作品详情。可能是作品权限限制或平台风控，请稍后重试。"
       );
     }
 
-    // 图文：优先获取原图下载地址
-    const images = (item.images || [])
+    // 图文作品
+    const imageObjects =
+      item.images ||
+      item.image_post_info?.images ||
+      [];
+
+    const images = imageObjects
       .map(getOriginalImageUrl)
       .filter(Boolean);
 
@@ -340,10 +464,7 @@ export default async function handler(req, res) {
     if (rawVideo) {
       return res.status(200).json({
         type: "video",
-        videoUrl: rawVideo.replace(
-          "/playwm/",
-          "/play/"
-        ),
+        videoUrl: rawVideo.replace("/playwm/", "/play/"),
         description: item.desc || "抖音视频",
         author: item.author?.nickname || "",
         cover:
@@ -354,15 +475,14 @@ export default async function handler(req, res) {
     }
 
     throw new Error(
-      "已找到作品，但没有获取到可下载的视频或图片地址。"
+      "已经找到作品详情，但没有获取到可用的视频或图片地址。"
     );
 
   } catch (e) {
     console.error("Douyin parse error:", e);
 
     return res.status(502).json({
-      error: e.message ||
-        "解析服务暂时不可用，请稍后重试。"
+      error: e.message || "解析服务暂时不可用，请稍后重试。"
     });
   }
 }
