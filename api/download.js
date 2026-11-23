@@ -22,8 +22,23 @@ export default async function handler(req, res) {
       "snssdk.com",
       "zjcdn.com",
       "douyin.com",
-      "iesdouyin.com"
+      "iesdouyin.com",
+      "bilivideo.com",
+      "bilivideo.cn",
+      "bilivideo.net",
+      "biliimg.com",
+      "hdslb.com"
     ];
+
+    function isBiliHost(hostname) {
+      return [
+        "bilivideo.com",
+        "bilivideo.cn",
+        "bilivideo.net",
+        "biliimg.com",
+        "hdslb.com"
+      ].some(domain => hostname === domain || hostname.endsWith("." + domain));
+    }
 
     function isAllowed(hostname) {
       return allowedHosts.some(
@@ -35,11 +50,15 @@ export default async function handler(req, res) {
       return res.status(400).send("Invalid media URL");
     }
 
+    const bili = isBiliHost(u.hostname.toLowerCase());
+
     const upstream = await fetch(u.toString(), {
       redirect: "follow",
       headers: {
         "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-        "Referer": "https://www.douyin.com/",
+        "Referer": bili
+          ? "https://www.bilibili.com/"
+          : "https://www.douyin.com/",
         ...(req.headers.range ? { "Range": req.headers.range } : {})
       }
     });
@@ -48,7 +67,6 @@ export default async function handler(req, res) {
       return res.status(upstream.status).send("媒体源暂时无法访问，请重新解析。");
     }
 
-    // 检查跳转后的最终域名，避免跳转到非授权地址
     const finalUrl = new URL(upstream.url || u.toString());
 
     if (
@@ -64,12 +82,17 @@ export default async function handler(req, res) {
 
     const isImage = contentType.startsWith("image/");
     const isVideo = contentType.startsWith("video/");
+    const isBiliMedia = bili || isBiliHost(finalUrl.hostname.toLowerCase());
+    const isOctetStream = contentType === "application/octet-stream";
 
-    if (!isImage && !isVideo) {
-      return res.status(415).send("不支持的媒体格式。");
+    if (!isImage && !isVideo && !(isBiliMedia && isOctetStream)) {
+      return res.status(415).send("不支持的媒体格式：" + (contentType || "unknown"));
     }
 
-    let extension = "bin";
+    const finalIsImage = isImage;
+    const finalIsVideo = isVideo || (isBiliMedia && isOctetStream);
+
+    const outputType = finalIsVideo ? "video/mp4" : contentType;
 
     const extensions = {
       "image/jpeg": "jpg",
@@ -83,16 +106,16 @@ export default async function handler(req, res) {
       "video/webm": "webm"
     };
 
-    extension = extensions[contentType] || (isImage ? "jpg" : "mp4");
+    const extension = extensions[outputType] || (finalIsImage ? "jpg" : "mp4");
 
     const inline = req.query.inline === "1";
     const index = Math.max(1, Number(req.query.index) || 1);
 
-    const filename = isImage
-      ? `douyin-image-${index}.${extension}`
-      : `douyin-video.${extension}`;
+    const filename = finalIsImage
+      ? `media-image-${index}.${extension}`
+      : `media-video.${extension}`;
 
-    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Type", outputType);
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("X-Content-Type-Options", "nosniff");
 
@@ -104,7 +127,7 @@ export default async function handler(req, res) {
       res.setHeader("Content-Range", upstream.headers.get("content-range"));
     }
 
-    if (isVideo) {
+    if (finalIsVideo) {
       res.setHeader("Accept-Ranges", "bytes");
     }
 
