@@ -1,4 +1,91 @@
 
+function extractRouterData(html) {
+  const marker = "window._ROUTER_DATA";
+  const markerIndex = html.indexOf(marker);
+
+  if (markerIndex === -1) return null;
+
+  const start = html.indexOf("{", markerIndex);
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < html.length; i++) {
+    const char = html[i];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+    } else if (char === "{") {
+      depth++;
+    } else if (char === "}") {
+      depth--;
+
+      if (depth === 0) {
+        try {
+          return JSON.parse(html.slice(start, i + 1));
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function findVideoItem(data) {
+  if (!data || typeof data !== "object") return null;
+
+  // 优先从抖音页面的 loaderData 中提取
+  const loaderData = data.loaderData || {};
+
+  for (const [key, value] of Object.entries(loaderData)) {
+    if (
+      /^(video|note)_/.test(key) &&
+      value?.videoInfoRes?.item_list?.[0]
+    ) {
+      return value.videoInfoRes.item_list[0];
+    }
+  }
+
+  // 兼容其他页面数据结构
+  const visited = new Set();
+  const stack = [data];
+
+  while (stack.length) {
+    const current = stack.pop();
+
+    if (!current || typeof current !== "object") continue;
+    if (visited.has(current)) continue;
+    visited.add(current);
+
+    if (Array.isArray(current.item_list) && current.item_list[0]?.video) {
+      return current.item_list[0];
+    }
+
+    for (const value of Object.values(current)) {
+      if (value && typeof value === "object") {
+        stack.push(value);
+      }
+    }
+  }
+
+  return null;
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -23,15 +110,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // 提取抖音链接
     const urls = input.match(/https?:\/\/[^\s，。]+/g) || [];
-    const candidate = urls.find(u =>
-      /douyin\.com|iesdouyin\.com/i.test(u)
+    const candidate = urls.find(url =>
+      /douyin\.com|iesdouyin\.com/i.test(url)
     );
 
     if (!candidate) {
       return res.status(400).json({
-        error: "没有识别到有效的抖音链接，请复制完整分享文案或链接。"
+        error: "没有识别到有效的抖音链接。"
       });
     }
 
@@ -44,13 +130,16 @@ export default async function handler(req, res) {
     }
 
     const headers = {
-      "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+      "User-Agent":
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
       "Referer": "https://www.douyin.com/",
-      "Accept": "text/html,application/json,*/*"
+      "Accept": "text/html,application/xhtml+xml,application/json,*/*",
+      "Accept-Language": "zh-CN,zh;q=0.9"
     };
 
-    // 获取分享链接跳转地址
+    // 第一步：跟踪分享短链接
     const redirect = await fetch(candidate, {
+      method: "GET",
       redirect: "follow",
       headers
     });
@@ -64,82 +153,68 @@ export default async function handler(req, res) {
     const finalUrl = redirect.url || candidate;
 
     let awemeId =
-      finalUrl.match(/\/(?:video|note)\/(\d+)/)?.[1] ||
-      finalUrl.match(/[?&]modal_id=(\d+)/)?.[1] ||
+      finalUrl.match(/\/(?:video|note|share\/video)\/(\d+)/)?.[1] ||
+      finalUrl.match(/[?&](?:modal_id|aweme_id)=(\d+)/)?.[1] ||
       input.match(/(?:视频|作品)?\s*(\d{15,20})/)?.[1];
 
-    // 如果跳转地址没有 ID，从网页内容提取
-    if (!awemeId) {
-      const html = await redirect.text();
+    // 第二步：如果 URL 中没有 ID，从分享页 HTML 提取
+    const initialHtml = await redirect.text();
 
+    if (!awemeId) {
       awemeId =
-        html.match(/"aweme_id"\s*:\s*"(\d+)"/)?.[1] ||
-        html.match(/\/video\/(\d+)/)?.[1] ||
-        html.match(/itemId["']?\s*[:=]\s*["']?(\d+)/)?.[1];
+        initialHtml.match(/"aweme_id"\s*:\s*"(\d+)"/)?.[1] ||
+        initialHtml.match(/\/video\/(\d+)/)?.[1] ||
+        initialHtml.match(/modal_id["']?\s*[:=]\s*["']?(\d+)/)?.[1];
     }
 
     if (!awemeId) {
       throw new Error(
-        "无法提取视频 ID。请检查链接是否有效，作品是否公开，或是否受到抖音访问限制。"
+        "无法获取视频 ID。请确认作品公开且分享链接有效。"
       );
     }
 
-    // 请求抖音视频信息
-    const api =
-      "https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/?item_ids=" +
-      encodeURIComponent(awemeId);
+    // 第三步：请求抖音 SSR 分享页面
+    const sharePage =
+      `https://www.iesdouyin.com/share/video/${awemeId}/?from_ssr=1`;
 
-    const detailRes = await fetch(api, {
+    const pageRes = await fetch(sharePage, {
+      method: "GET",
+      redirect: "follow",
       headers
     });
 
-    const responseText = await detailRes.text();
-
-    if (!detailRes.ok) {
+    if (!pageRes.ok) {
       throw new Error(
-        `抖音视频接口请求失败，HTTP ${detailRes.status}。`
+        `抖音视频页面访问失败，HTTP ${pageRes.status}`
       );
     }
 
-    if (!responseText || !responseText.trim()) {
+    const html = await pageRes.text();
+
+    if (!html || html.length < 100) {
       throw new Error(
-        "抖音视频接口返回了空内容，可能受到访问限制或接口暂时不可用。"
+        "抖音返回的分享页面内容为空，可能触发访问限制。"
       );
     }
 
-    // 解析 JSON，兼容部分 JSONP 格式
-    let json;
+    // 第四步：提取页面内嵌数据
+    const routerData = extractRouterData(html);
 
-    try {
-      json = JSON.parse(responseText);
-    } catch {
-      const jsonp = responseText.match(
-        /^[^(]*\(([\s\S]*)\);?\s*$/
+    if (!routerData) {
+      throw new Error(
+        "没有找到抖音视频页面数据（_ROUTER_DATA），可能受到访问限制或页面结构已变化。"
       );
-
-      if (jsonp) {
-        try {
-          json = JSON.parse(jsonp[1]);
-        } catch {
-          throw new Error(
-            "抖音接口返回的数据格式异常，可能触发了风控。"
-          );
-        }
-      } else {
-        throw new Error(
-          "抖音接口返回的不是有效 JSON，可能触发了风控或接口已变更。"
-        );
-      }
     }
 
-    const item = json.item_list?.[0];
+    const item = findVideoItem(routerData);
 
     if (!item) {
       throw new Error(
-        "没有获取到视频信息。作品可能已删除、设为私密，或抖音接口规则已变化。"
+        "页面已打开，但没有找到视频详情。作品可能已删除、设为私密，或页面数据结构已变化。"
       );
     }
 
+    // 第五步：提取视频地址
     const video = item.video || {};
 
     const rawUrl =
@@ -148,7 +223,7 @@ export default async function handler(req, res) {
 
     if (!rawUrl) {
       throw new Error(
-        "没有获取到视频播放地址，该作品可能受到访问限制。"
+        "已找到视频信息，但没有获取到视频播放地址。"
       );
     }
 
