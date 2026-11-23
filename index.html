@@ -11,43 +11,431 @@
 <title>阿鑫的解析平台 · 全平台媒体解析</title>
 <style>
 :root{color-scheme:dark;--bg:#0b0a14;--line:rgba(255,255,255,.12);--muted:#9999aa;--purple:#a58aff;--mint:#63e2c5;--white:#f7f6fc}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;color:var(--white);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC",sans-serif;padding:env(safe-area-inset-top) 15px calc(25px + env(safe-area-inset-bottom));background:radial-gradient(ellipse at 12% -5%,rgba(125,88,255,.27),transparent 38%),radial-gradient(ellipse at 100% 40%,rgba(48,205,180,.12),transparent 36%),linear-gradient(145deg,#100e1b,#090910 62%,#151222);overflow-x:hidden}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;min-height:100vh;color:var(--white);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC",sans-serif;padding:env(safe-area-inset-top) 15px calc(25px + env(safe-area-inset-bottom));background:radial-gradient(ellipse at 12% -5%,rgba(125,88,255,.27),transparent 38%),radial-gradient(ellipse at 100% 40%,rgba(48,205,180,.12),transparent 36%),linear-gradient(145deg,#100e1b,#090910 62%,#151222);overflow-x:hidden}
 body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.16;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,#000,transparent 78%)}
-.wrap{max-width:520px;margin:0 auto;position:relative}.top{display:flex;align-items:center;justify-content:space-between;padding:22px 3px 25px}.brand{display:flex;gap:12px;align-items:center}.logo{width:46px;height:46px;border:1px solid #c4b4ff66;border-radius:16px;background:linear-gradient(145deg,#a58aff,#5940b9);display:grid;place-items:center;font-size:24px;font-weight:900;box-shadow:0 0 26px #8b6cff55,inset 0 1px 0 #ffffff66;position:relative;overflow:hidden;animation:pulse 3.2s ease-in-out infinite}.logo:after{content:"";position:absolute;inset:-60%;background:linear-gradient(110deg,transparent 40%,#ffffff88 50%,transparent 60%);transform:translateX(-80%) rotate(18deg);animation:shine 4.5s ease-in-out infinite}.logo span{position:relative;z-index:1;text-shadow:0 2px 12px #21134f}.name{font-weight:800;font-size:18px;letter-spacing:.5px}.sub{font-size:9px;color:#aaa5c2;margin-top:5px;letter-spacing:1.7px}.status{font-size:10px;padding:8px 10px;border:1px solid var(--line);border-radius:99px;background:#ffffff09;color:var(--muted);white-space:nowrap}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#858995;margin-right:6px}.status.live{color:#b8f4d7}.status.live .dot{background:var(--mint);box-shadow:0 0 10px #45d69a99}
-.hero{padding:15px 3px 20px}.eyebrow{font-size:10px;letter-spacing:2.7px;color:#b9a6ff;font-weight:800}.hero h1{font-size:35px;line-height:1.2;letter-spacing:-1.4px;margin:13px 0 10px;font-weight:850}.intro{color:var(--muted);font-size:13px;line-height:1.75;margin:0;max-width:360px}.platforms{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:20px}.platform{min-width:0;padding:12px 2px 10px;border:1px solid #ffffff16;border-radius:15px;background:linear-gradient(145deg,#ffffff10,#ffffff04);text-align:center;transition:.22s;animation:float 4s ease-in-out infinite}.platform:nth-child(2){animation-delay:.25s}.platform:nth-child(3){animation-delay:.5s}.platform:nth-child(4){animation-delay:.75s}.platform:nth-child(5){animation-delay:1s}.picon{width:30px;height:30px;border-radius:10px;margin:0 auto 7px;display:grid;place-items:center;font-size:14px;font-weight:900;color:#fff;background:linear-gradient(145deg,#9a7cff,#5540ae)}.platform:nth-child(2) .picon{background:linear-gradient(145deg,#ff477e,#24242b)}.platform:nth-child(3) .picon{background:linear-gradient(145deg,#51b9ff,#2769c4)}.platform:nth-child(4) .picon{background:linear-gradient(145deg,#555,#151515)}.platform:nth-child(5) .picon{background:linear-gradient(145deg,#ff5252,#b81731)}.platform b{display:block;font-size:10px;white-space:nowrap}.platform small{display:block;color:#9292a4;font-size:9px;margin-top:4px}.platform.active{border-color:#a58aff99;background:#9b7bff20;box-shadow:0 0 18px #9b7bff22}
-.glass{background:linear-gradient(145deg,rgba(255,255,255,.115),rgba(255,255,255,.035));border:1px solid rgba(184,165,255,.16);border-radius:24px;box-shadow:inset 0 1px 0 #ffffff12,0 16px 38px #0005;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}.section{margin-top:14px;padding:19px 17px}.section-title{display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:750;margin-bottom:14px}.hint{font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.8px}textarea{display:block;width:100%;min-height:124px;resize:vertical;background:#090910aa;border:1px solid #ffffff1c;border-radius:16px;color:white;padding:15px;font:14px/1.65 -apple-system,BlinkMacSystemFont,sans-serif;outline:none}textarea:focus{border-color:#a58affaa;box-shadow:0 0 0 3px #9b7bff18}textarea::placeholder{color:#777787}button{border:1px solid #ffffff20;color:#eee;border-radius:14px;padding:13px 15px;font-size:13px;font-weight:700;cursor:pointer;transition:transform .2s,filter .2s}button:disabled{opacity:.55;cursor:wait}.primary{background:linear-gradient(115deg,#b19aff,#8060ef 55%,#5bd9c1);background-size:180% 100%;color:#100c20;border:0;box-shadow:0 7px 24px #8060ef35}.primary:active{transform:scale(.985);filter:brightness(1.12)}.parse-btn{width:100%;margin-top:13px;padding:16px;font-size:15px;position:relative;overflow:hidden}.parse-btn.busy:after{content:"";position:absolute;top:0;bottom:0;width:35%;background:linear-gradient(90deg,transparent,#ffffff88,transparent);animation:scan 1.25s linear infinite}.secondary{background:#ffffff12}.statusbox{display:none;margin-top:13px;padding:13px 14px;background:#090b0f;border:1px solid #ffffff12;border-radius:14px;font-size:12px;line-height:1.6;color:#d7d9df;overflow-wrap:anywhere}.statusbox.show{display:block}.result{display:none;margin-top:15px}.result.show{display:block;animation:up .3s ease}.cover{width:100%;max-height:270px;object-fit:cover;border-radius:16px;background:#090b0f}.meta{font-size:15px;font-weight:700;line-height:1.55;margin-top:14px;overflow-wrap:anywhere}.author{font-size:11px;color:var(--muted);margin-top:5px}video{width:100%;max-height:360px;border-radius:16px;background:#000;margin-top:14px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}.actions button{padding:14px 7px;font-size:12px}.image-panel{margin-top:16px}.image-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.image-count{font-size:12px;color:var(--mint)}.image-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.image-item{min-width:0;overflow:hidden;border-radius:14px;background:#090b0f;border:1px solid #ffffff18}.image-item img{width:100%;display:block;aspect-ratio:1/1;object-fit:cover}.image-item a{display:block;padding:11px 5px;text-align:center;color:var(--mint);font-size:12px;text-decoration:none;border-top:1px solid #ffffff12}.zip-btn{width:100%;margin-top:13px;padding:15px;font-size:14px}.info-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #ffffff13}.info-row:last-child{border:0;padding-bottom:2px}.info-label{font-size:12px;color:#e5e6e9}.info-desc{font-size:10px;color:var(--muted);margin-top:4px}.info-value{font-size:11px;color:#b9a6ff}.foot{text-align:center;font-size:10px;color:#777687;line-height:1.9;padding:23px 8px 5px;letter-spacing:.3px}.toast{position:fixed;left:16px;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));max-width:480px;margin:auto;padding:14px 16px;border-radius:17px;background:#242333;border:1px solid #ffffff25;box-shadow:0 12px 40px #0009;display:none;font-size:13px;line-height:1.5;z-index:10}.toast.show{display:block;animation:up .25s ease}@keyframes up{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}@keyframes pulse{0%,100%{box-shadow:0 0 18px #8b6cff44,inset 0 1px 0 #ffffff55}50%{box-shadow:0 0 32px #8b6cff88,inset 0 1px 0 #ffffff88}}@keyframes shine{0%,65%{transform:translateX(-80%) rotate(18deg)}100%{transform:translateX(80%) rotate(18deg)}}@keyframes float{0%,100%{transform:translateY(0);opacity:.72}50%{transform:translateY(-4px);opacity:1}}@keyframes scan{0%{transform:translateX(-120%)}100%{transform:translateX(220%)}}@media(max-width:360px){body{padding-left:11px;padding-right:11px}.section{padding:16px 13px}.hero h1{font-size:32px}.platforms{gap:5px}.platform b{font-size:9px}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;scroll-behavior:auto!important;transition:none!important}}
+.wrap{max-width:520px;margin:0 auto;position:relative}
+.top{display:flex;align-items:center;justify-content:space-between;padding:22px 3px 25px}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:46px;height:46px;border:1px solid #c4b4ff66;border-radius:16px;background:linear-gradient(145deg,#a58aff,#5940b9);display:grid;place-items:center;font-size:24px;font-weight:900;box-shadow:0 0 26px #8b6cff55,inset 0 1px 0 #ffffff66;position:relative;overflow:hidden;animation:pulse 3.2s ease-in-out infinite}
+.logo:after{content:"";position:absolute;inset:-60%;background:linear-gradient(110deg,transparent 40%,#ffffff88 50%,transparent 60%);transform:translateX(-80%) rotate(18deg);animation:shine 4.5s ease-in-out infinite}
+.logo span{position:relative;z-index:1;text-shadow:0 2px 12px #21134f}
+.name{font-weight:800;font-size:18px;letter-spacing:.5px}
+.sub{font-size:9px;color:#aaa5c2;margin-top:5px;letter-spacing:1.7px}
+.status{font-size:10px;padding:8px 10px;border:1px solid var(--line);border-radius:99px;background:#ffffff09;color:var(--muted);white-space:nowrap}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#858995;margin-right:6px}
+.status.live{color:#b8f4d7}
+.status.live .dot{background:var(--mint);box-shadow:0 0 10px #45d69a99}
+.hero{padding:15px 3px 20px}
+.eyebrow{font-size:10px;letter-spacing:2.7px;color:#b9a6ff;font-weight:800}
+.hero h1{font-size:35px;line-height:1.2;letter-spacing:-1.4px;margin:13px 0 10px;font-weight:850}
+.intro{color:var(--muted);font-size:13px;line-height:1.75;margin:0;max-width:360px}
+.platforms{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:20px}
+.platform{min-width:0;padding:12px 2px 10px;border:1px solid #ffffff16;border-radius:15px;background:linear-gradient(145deg,#ffffff10,#ffffff04);text-align:center;transition:.22s;animation:float 4s ease-in-out infinite}
+.platform:nth-child(2){animation-delay:.25s}
+.platform:nth-child(3){animation-delay:.5s}
+.platform:nth-child(4){animation-delay:.75s}
+.platform:nth-child(5){animation-delay:1s}
+.picon{width:30px;height:30px;border-radius:10px;margin:0 auto 7px;display:grid;place-items:center;font-size:14px;font-weight:900;color:#fff;background:linear-gradient(145deg,#9a7cff,#5540ae)}
+.platform:nth-child(2) .picon{background:linear-gradient(145deg,#ff477e,#24242b)}
+.platform:nth-child(3) .picon{background:linear-gradient(145deg,#51b9ff,#2769c4)}
+.platform:nth-child(4) .picon{background:linear-gradient(145deg,#555,#151515)}
+.platform:nth-child(5) .picon{background:linear-gradient(145deg,#ff5252,#b81731)}
+.platform b{display:block;font-size:10px;white-space:nowrap}
+.platform small{display:block;color:#9292a4;font-size:9px;margin-top:4px}
+.platform.active{border-color:#a58aff99;background:#9b7bff20;box-shadow:0 0 18px #9b7bff22}
+.platform.connected small{color:var(--mint)}
+.glass{background:linear-gradient(145deg,rgba(255,255,255,.115),rgba(255,255,255,.035));border:1px solid rgba(184,165,255,.16);border-radius:24px;box-shadow:inset 0 1px 0 #ffffff12,0 16px 38px #0005;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+.section{margin-top:14px;padding:19px 17px}
+.section-title{display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:750;margin-bottom:14px}
+.hint{font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.8px}
+textarea{display:block;width:100%;min-height:124px;resize:vertical;background:#090910aa;border:1px solid #ffffff1c;border-radius:16px;color:white;padding:15px;font:14px/1.65 -apple-system,BlinkMacSystemFont,sans-serif;outline:none}
+textarea:focus{border-color:#a58affaa;box-shadow:0 0 0 3px #9b7bff18}
+textarea::placeholder{color:#777787}
+button{border:1px solid #ffffff20;color:#eee;border-radius:14px;padding:13px 15px;font-size:13px;font-weight:700;cursor:pointer;transition:transform .2s,filter .2s}
+button:disabled{opacity:.55;cursor:wait}
+.primary{background:linear-gradient(115deg,#b19aff,#8060ef 55%,#5bd9c1);background-size:180% 100%;color:#100c20;border:0;box-shadow:0 7px 24px #8060ef35}
+.primary:active{transform:scale(.985);filter:brightness(1.12)}
+.parse-btn{width:100%;margin-top:13px;padding:16px;font-size:15px;position:relative;overflow:hidden}
+.parse-btn.busy:after{content:"";position:absolute;top:0;bottom:0;width:35%;background:linear-gradient(90deg,transparent,#ffffff88,transparent);animation:scan 1.25s linear infinite}
+.secondary{background:#ffffff12}
+.statusbox{display:none;margin-top:13px;padding:13px 14px;background:#090b0f;border:1px solid #ffffff12;border-radius:14px;font-size:12px;line-height:1.6;color:#d7d9df;overflow-wrap:anywhere}
+.statusbox.show{display:block}
+.result{display:none;margin-top:15px}
+.result.show{display:block;animation:up .3s ease}
+.cover{width:100%;max-height:270px;object-fit:cover;border-radius:16px;background:#090b0f}
+.meta{font-size:15px;font-weight:700;line-height:1.55;margin-top:14px;overflow-wrap:anywhere}
+.author{font-size:11px;color:var(--muted);margin-top:5px}
+video{width:100%;max-height:360px;border-radius:16px;background:#000;margin-top:14px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}
+.actions button{padding:14px 7px;font-size:12px}
+.image-panel{margin-top:16px}
+.image-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.image-count{font-size:12px;color:var(--mint)}
+.image-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.image-item{min-width:0;overflow:hidden;border-radius:14px;background:#090b0f;border:1px solid #ffffff18}
+.image-item img{width:100%;display:block;aspect-ratio:1/1;object-fit:cover}
+.image-item a{display:block;padding:11px 5px;text-align:center;color:var(--mint);font-size:12px;text-decoration:none;border-top:1px solid #ffffff12}
+.zip-btn{width:100%;margin-top:13px;padding:15px;font-size:14px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #ffffff13}
+.info-row:last-child{border:0;padding-bottom:2px}
+.info-label{font-size:12px;color:#e5e6e9}
+.info-desc{font-size:10px;color:var(--muted);margin-top:4px}
+.info-value{font-size:11px;color:#b9a6ff}
+.foot{text-align:center;font-size:10px;color:#777687;line-height:1.9;padding:23px 8px 5px;letter-spacing:.3px}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));max-width:480px;margin:auto;padding:14px 16px;border-radius:17px;background:#242333;border:1px solid #ffffff25;box-shadow:0 12px 40px #0009;display:none;font-size:13px;line-height:1.5;z-index:10}
+.toast.show{display:block;animation:up .25s ease}
+@keyframes up{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@keyframes pulse{0%,100%{box-shadow:0 0 18px #8b6cff44,inset 0 1px 0 #ffffff55}50%{box-shadow:0 0 32px #8b6cff88,inset 0 1px 0 #ffffff88}}
+@keyframes shine{0%,65%{transform:translateX(-80%) rotate(18deg)}100%{transform:translateX(80%) rotate(18deg)}}
+@keyframes float{0%,100%{transform:translateY(0);opacity:.72}50%{transform:translateY(-4px);opacity:1}}
+@keyframes scan{0%{transform:translateX(-120%)}100%{transform:translateX(220%)}}
+@media(max-width:360px){body{padding-left:11px;padding-right:11px}.section{padding:16px 13px}.hero h1{font-size:32px}.platforms{gap:5px}.platform b{font-size:9px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;scroll-behavior:auto!important;transition:none!important}}
 </style>
 </head>
 <body>
 <main class="wrap">
-<header class="top"><div class="brand"><div class="logo"><span>鑫</span></div><div><div class="name">阿鑫的解析平台</div><div class="sub">A XIN · MEDIA PARSER</div></div></div><div class="status live" id="serviceStatus"><i class="dot"></i><span id="serviceText">服务就绪</span></div></header>
-<section class="hero"><div class="eyebrow">ALL-IN-ONE MEDIA PARSER</div><h1>一个链接，<br>解析全平台内容</h1><p class="intro">视频、图文与高清图片统一解析入口。自动识别来源平台，专为 iPhone 优化。</p>
-<div class="platforms" aria-label="平台入口"><div class="platform active" data-platform="douyin"><div class="picon">抖</div><b>抖音</b><small>已接入</small></div><div class="platform" data-platform="tiktok"><div class="picon">♪</div><b>TikTok</b><small>待接入</small></div><div class="platform" data-platform="bilibili"><div class="picon">B</div><b>哔哩哔哩</b><small>待接入</small></div><div class="platform" data-platform="x"><div class="picon">𝕏</div><b>X / 推特</b><small>待接入</small></div><div class="platform" data-platform="youtube"><div class="picon">▶</div><b>YouTube</b><small>待接入</small></div></div></section>
-<section class="glass section"><div class="section-title"><span>作品链接</span><span class="hint" id="platformHint">AUTO DETECT</span></div><textarea id="share" placeholder="粘贴抖音、TikTok、B站、X 或 YouTube 链接……"></textarea><button class="primary parse-btn" id="parse">↗　开始解析</button><div class="statusbox" id="status" role="status"></div></section>
-<section class="glass section result" id="result"><div class="section-title"><span id="resultHeading">作品信息</span><span class="hint">解析结果</span></div><img class="cover" id="cover" alt="作品封面" hidden><div class="meta" id="title"></div><div class="author" id="author"></div><div id="videoPanel" hidden><video id="player" controls playsinline webkit-playsinline></video><div class="actions"><button class="primary" id="download">↓　下载视频</button><button class="secondary" id="copy">复制视频地址</button></div><p class="hint" style="line-height:1.8;margin-top:14px">iPhone 下载后通常进入「文件」App 的下载项目。如需保存到照片，请打开视频文件，点击分享，再选择「存储视频」。</p></div><div class="image-panel" id="imagePanel" hidden><div class="image-head"><span style="font-size:13px;font-weight:650">图文内容</span><span class="image-count" id="imageCount"></span></div><div class="image-grid" id="imageGrid"></div><button class="primary zip-btn" id="zipDownload">↓　打包下载全部图片（ZIP）</button><p class="hint" style="line-height:1.8;margin-top:12px">下载完成后，可在 iPhone「文件」App 的下载项目中找到 ZIP 文件，点击即可解压。</p></div></section>
-<section class="glass section"><div class="section-title"><span>使用说明</span><span class="hint">HOW TO USE</span></div><div class="info-row"><div><div class="info-label">01 · 复制链接</div><div class="info-desc">在对应平台作品页面点击分享 → 复制链接</div></div><div class="info-value">COPY</div></div><div class="info-row"><div><div class="info-label">02 · 自动识别</div><div class="info-desc">粘贴链接，平台入口会自动高亮</div></div><div class="info-value">DETECT</div></div><div class="info-row"><div><div class="info-label">03 · 解析下载</div><div class="info-desc">当前抖音已接入，其他平台逐步开放</div></div><div class="info-value">SAVE</div></div></section>
+<header class="top">
+  <div class="brand">
+    <div class="logo"><span>鑫</span></div>
+    <div><div class="name">阿鑫的解析平台</div><div class="sub">A XIN · MEDIA PARSER</div></div>
+  </div>
+  <div class="status live" id="serviceStatus"><i class="dot"></i><span id="serviceText">服务就绪</span></div>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">ALL-IN-ONE MEDIA PARSER</div>
+  <h1>一个链接，<br>解析全平台内容</h1>
+  <p class="intro">视频、图文与高清图片统一解析入口。自动识别来源平台，专为 iPhone 优化。</p>
+  <div class="platforms" aria-label="平台入口">
+    <div class="platform active connected" data-platform="douyin"><div class="picon">抖</div><b>抖音</b><small>已接入</small></div>
+    <div class="platform" data-platform="tiktok"><div class="picon">♪</div><b>TikTok</b><small>待接入</small></div>
+    <div class="platform connected" data-platform="bilibili"><div class="picon">B</div><b>哔哩哔哩</b><small>测试接入</small></div>
+    <div class="platform" data-platform="x"><div class="picon">𝕏</div><b>X / 推特</b><small>待接入</small></div>
+    <div class="platform" data-platform="youtube"><div class="picon">▶</div><b>YouTube</b><small>待接入</small></div>
+  </div>
+</section>
+
+<section class="glass section">
+  <div class="section-title"><span>作品链接</span><span class="hint" id="platformHint">AUTO DETECT</span></div>
+  <textarea id="share" placeholder="粘贴抖音、TikTok、B站、X 或 YouTube 链接……"></textarea>
+  <button class="primary parse-btn" id="parse">↗　开始解析</button>
+  <div class="statusbox" id="status" role="status"></div>
+</section>
+
+<section class="glass section result" id="result">
+  <div class="section-title"><span id="resultHeading">作品信息</span><span class="hint">解析结果</span></div>
+  <img class="cover" id="cover" alt="作品封面" hidden>
+  <div class="meta" id="title"></div>
+  <div class="author" id="author"></div>
+
+  <div id="videoPanel" hidden>
+    <video id="player" controls playsinline webkit-playsinline></video>
+    <div class="actions">
+      <button class="primary" id="download">↓　下载视频</button>
+      <button class="secondary" id="copy">复制视频地址</button>
+    </div>
+    <p class="hint" style="line-height:1.8;margin-top:14px">iPhone 下载后通常进入「文件」App 的下载项目。如需保存到照片，请打开视频文件，点击分享，再选择「存储视频」。</p>
+  </div>
+
+  <div class="image-panel" id="imagePanel" hidden>
+    <div class="image-head"><span style="font-size:13px;font-weight:650">图文内容</span><span class="image-count" id="imageCount"></span></div>
+    <div class="image-grid" id="imageGrid"></div>
+    <button class="primary zip-btn" id="zipDownload">↓　打包下载全部图片（ZIP）</button>
+    <p class="hint" style="line-height:1.8;margin-top:12px">下载完成后，可在 iPhone「文件」App 的下载项目中找到 ZIP 文件，点击即可解压。</p>
+  </div>
+</section>
+
+<section class="glass section">
+  <div class="section-title"><span>使用说明</span><span class="hint">HOW TO USE</span></div>
+  <div class="info-row"><div><div class="info-label">01 · 复制链接</div><div class="info-desc">在对应平台作品页面点击分享 → 复制链接</div></div><div class="info-value">COPY</div></div>
+  <div class="info-row"><div><div class="info-label">02 · 自动识别</div><div class="info-desc">粘贴链接，平台入口会自动高亮</div></div><div class="info-value">DETECT</div></div>
+  <div class="info-row"><div><div class="info-label">03 · 解析下载</div><div class="info-desc">抖音已接入，B站正在测试，其余平台逐步开放</div></div><div class="info-value">SAVE</div></div>
+</section>
+
 <footer class="foot">阿鑫的解析平台 · MOBILE EDITION<br>仅供下载本人拥有或已获授权的内容，请遵守平台规则及版权法律。</footer>
-</main><div class="toast" id="toast"></div>
+</main>
+<div class="toast" id="toast"></div>
+
 <script>
-const $=id=>document.getElementById(id);let currentUrl="",currentImages=[],detectedPlatform="";
-const platformNames={douyin:"抖音",tiktok:"TikTok",bilibili:"哔哩哔哩",x:"X / 推特",youtube:"YouTube"};
-function detectPlatform(value){const v=value.toLowerCase();if(/douyin\.com|iesdouyin/.test(v))return"douyin";if(/tiktok\.com/.test(v))return"tiktok";if(/bilibili\.com|b23\.tv/.test(v))return"bilibili";if(/twitter\.com|x\.com/.test(v))return"x";if(/youtube\.com|youtu\.be/.test(v))return"youtube";return""}
-function updatePlatform(){detectedPlatform=detectPlatform($("share").value);document.querySelectorAll(".platform").forEach(el=>el.classList.toggle("active",el.dataset.platform===detectedPlatform));$("platformHint").textContent=detectedPlatform?"已识别 · "+platformNames[detectedPlatform]:"AUTO DETECT"}
-function message(s){$("status").textContent=s;$("status").classList.add("show")}
-function toast(s){const t=$("toast");t.textContent=s;t.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove("show"),3500)}
-function service(ok,text){$("serviceStatus").classList.toggle("live",ok);$("serviceText").textContent=text}
-function clearResult(){currentUrl="";currentImages=[];$("player").pause();$("player").removeAttribute("src");$("player").load();$("videoPanel").hidden=true;$("imagePanel").hidden=true;$("imageGrid").replaceChildren();$("cover").hidden=true}
-function safeImageUrl(url){try{const u=new URL(url);return u.protocol==="https:"?u.href:""}catch{return""}}
-$("parse").addEventListener("click",async()=>{const raw=$("share").value.trim();if(!raw){message("请先粘贴作品分享链接。");return}updatePlatform();if(!detectedPlatform){message("暂时无法识别链接来源，请检查链接是否完整。");return}if(detectedPlatform!=="douyin"){message("已识别为 "+platformNames[detectedPlatform]+"，该平台解析模块正在接入中。目前抖音解析功能正常可用。");service(false,"模块接入中");return}
-const btn=$("parse");btn.disabled=true;btn.classList.add("busy");btn.textContent="正在解析…";clearResult();$("result").classList.remove("show");message("正在识别抖音链接并获取作品信息，请稍候…");service(false,"正在解析");
-try{const r=await fetch("/api/parse",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:raw})});const responseText=await r.text();let data;try{data=JSON.parse(responseText)}catch{throw new Error("服务器返回内容异常（HTTP "+r.status+"），请稍后重试。")}if(!r.ok)throw new Error(data.error||"解析失败，请检查链接。");$("title").textContent=data.description||"抖音作品";$("author").textContent=data.author?"作者："+data.author:"";if(data.cover){$("cover").src=data.cover;$("cover").hidden=false}
-if(data.type==="images"&&Array.isArray(data.images)&&data.images.length){currentImages=data.images.map(safeImageUrl).filter(Boolean);if(!currentImages.length)throw new Error("作品图片地址无效，请重新解析。");$("resultHeading").textContent="图文作品";$("imageCount").textContent=currentImages.length+" 张图片";currentImages.forEach((url,index)=>{const item=document.createElement("div");item.className="image-item";const img=document.createElement("img");img.src=url;img.alt="作品图片 "+(index+1);img.loading="lazy";const link=document.createElement("a");link.href="/api/download?url="+encodeURIComponent(url)+"&index="+(index+1);link.textContent="↓ 下载图片 "+(index+1);item.append(img,link);$("imageGrid").append(item)});$("imagePanel").hidden=false;message("图文解析成功，共 "+currentImages.length+" 张图片。")}
-else if(data.videoUrl){currentUrl=safeImageUrl(data.videoUrl);if(!currentUrl)throw new Error("视频地址无效，请重新解析。");$("resultHeading").textContent="视频作品";$("player").src="/api/download?url="+encodeURIComponent(currentUrl)+"&inline=1";$("videoPanel").hidden=false;message("视频解析成功，可以预览或下载。")}else throw new Error("没有获取到可用的视频或图片内容。");$("result").classList.add("show");service(true,"解析成功");$("result").scrollIntoView({behavior:"smooth",block:"start"})}
-catch(e){message(e.message||"网络异常，请稍后重试。");service(false,"解析异常")}finally{btn.disabled=false;btn.classList.remove("busy");btn.textContent="↗　开始解析"}});
-$("download").addEventListener("click",()=>{if(currentUrl)location.href="/api/download?url="+encodeURIComponent(currentUrl)});
-$("copy").addEventListener("click",async()=>{if(!currentUrl)return;try{await navigator.clipboard.writeText(currentUrl);toast("视频地址已复制")}catch(e){toast("复制失败，请检查浏览器权限")}});
-$("zipDownload").addEventListener("click",async()=>{if(!currentImages.length)return;const btn=$("zipDownload");btn.disabled=true;btn.textContent="正在打包图片…";try{const response=await fetch("/api/zip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({images:currentImages})});if(!response.ok){const errorText=await response.text();throw new Error(errorText||"ZIP 打包失败，请稍后重试。")}const blob=await response.blob();const blobUrl=URL.createObjectURL(blob);const a=document.createElement("a");a.href=blobUrl;a.download="douyin-images.zip";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(blobUrl),60000);toast("图片 ZIP 已生成，正在下载")}catch(e){toast(e.message||"打包失败，请稍后重试。")}finally{btn.disabled=false;btn.textContent="↓　打包下载全部图片（ZIP）"}});
-$("share").addEventListener("input",()=>{$("status").classList.remove("show");updatePlatform()});document.querySelectorAll(".platform").forEach(el=>el.addEventListener("click",()=>{$("share").focus();updatePlatform();if(!detectedPlatform){const examples={douyin:"https://v.douyin.com/",tiktok:"https://www.tiktok.com/",bilibili:"https://www.bilibili.com/",x:"https://x.com/",youtube:"https://www.youtube.com/"};$("platformHint").textContent="请粘贴 "+platformNames[el.dataset.platform]+" 链接"}}));$("player").addEventListener("error",()=>{if(currentUrl)toast("视频预览暂时无法播放，可以尝试下载。")});
+const $=id=>document.getElementById(id);
+let currentUrl="",currentImages=[],detectedPlatform="";
+
+const platformNames={
+  douyin:"抖音",
+  tiktok:"TikTok",
+  bilibili:"哔哩哔哩",
+  x:"X / 推特",
+  youtube:"YouTube"
+};
+
+function detectPlatform(value){
+  const v=value.toLowerCase();
+  if(/douyin\.com|iesdouyin/.test(v))return "douyin";
+  if(/tiktok\.com/.test(v))return "tiktok";
+  if(/bilibili\.com|b23\.tv/.test(v))return "bilibili";
+  if(/twitter\.com|x\.com/.test(v))return "x";
+  if(/youtube\.com|youtu\.be/.test(v))return "youtube";
+  return "";
+}
+
+function updatePlatform(){
+  detectedPlatform=detectPlatform($("share").value);
+  document.querySelectorAll(".platform").forEach(el=>{
+    el.classList.toggle("active",el.dataset.platform===detectedPlatform);
+  });
+  $("platformHint").textContent=detectedPlatform
+    ?"已识别 · "+platformNames[detectedPlatform]
+    :"AUTO DETECT";
+}
+
+function message(s){
+  $("status").textContent=s;
+  $("status").classList.add("show");
+}
+
+function toast(s){
+  const t=$("toast");
+  t.textContent=s;
+  t.classList.add("show");
+  clearTimeout(toast.timer);
+  toast.timer=setTimeout(()=>t.classList.remove("show"),3500);
+}
+
+function service(ok,text){
+  $("serviceStatus").classList.toggle("live",ok);
+  $("serviceText").textContent=text;
+}
+
+function clearResult(){
+  currentUrl="";
+  currentImages=[];
+  $("player").pause();
+  $("player").removeAttribute("src");
+  $("player").load();
+  $("videoPanel").hidden=true;
+  $("imagePanel").hidden=true;
+  $("imageGrid").replaceChildren();
+  $("cover").hidden=true;
+}
+
+function safeImageUrl(url){
+  try{
+    const u=new URL(url);
+    return u.protocol==="https:"?u.href:"";
+  }catch{
+    return "";
+  }
+}
+
+$("parse").addEventListener("click",async()=>{
+  const raw=$("share").value.trim();
+
+  if(!raw){
+    message("请先粘贴作品分享链接。");
+    return;
+  }
+
+  updatePlatform();
+
+  if(!detectedPlatform){
+    message("暂时无法识别链接来源，请检查链接是否完整。");
+    return;
+  }
+
+  // TikTok、X、YouTube 暂未接入，抖音和 B 站进入统一解析接口
+  if(!["douyin","bilibili"].includes(detectedPlatform)){
+    message("已识别为 "+platformNames[detectedPlatform]+"，该平台解析模块正在接入中。目前抖音和 B 站解析模块已开放测试。");
+    service(false,"模块接入中");
+    return;
+  }
+
+  const btn=$("parse");
+  btn.disabled=true;
+  btn.classList.add("busy");
+  btn.textContent="正在解析…";
+  clearResult();
+  $("result").classList.remove("show");
+  message("正在识别"+platformNames[detectedPlatform]+"链接并获取作品信息，请稍候…");
+  service(false,"正在解析");
+
+  try{
+    const r=await fetch("/api/parse",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({text:raw})
+    });
+
+    const responseText=await r.text();
+    let data;
+
+    try{
+      data=JSON.parse(responseText);
+    }catch{
+      throw new Error("服务器返回内容异常（HTTP "+r.status+"），请稍后重试。");
+    }
+
+    if(!r.ok){
+      throw new Error(data.error||"解析失败，请检查链接。");
+    }
+
+    $("title").textContent=data.description||"作品";
+    $("author").textContent=data.author?"作者："+data.author:"";
+
+    if(data.cover){
+      const coverUrl=safeImageUrl(data.cover);
+      if(coverUrl){
+        $("cover").src=coverUrl;
+        $("cover").hidden=false;
+      }
+    }
+
+    if(data.type==="images"&&Array.isArray(data.images)&&data.images.length){
+      currentImages=data.images.map(safeImageUrl).filter(Boolean);
+
+      if(!currentImages.length){
+        throw new Error("作品图片地址无效，请重新解析。");
+      }
+
+      $("resultHeading").textContent="图文作品";
+      $("imageCount").textContent=currentImages.length+" 张图片";
+
+      currentImages.forEach((url,index)=>{
+        const item=document.createElement("div");
+        item.className="image-item";
+
+        const img=document.createElement("img");
+        img.src="/api/download?url="+encodeURIComponent(url)+"&inline=1";
+        img.alt="作品图片 "+(index+1);
+        img.loading="lazy";
+
+        const link=document.createElement("a");
+        link.href="/api/download?url="+encodeURIComponent(url)+"&index="+(index+1);
+        link.textContent="↓ 下载图片 "+(index+1);
+
+        item.append(img,link);
+        $("imageGrid").append(item);
+      });
+
+      $("imagePanel").hidden=false;
+      message("图文解析成功，共 "+currentImages.length+" 张图片。");
+    }
+    else if(data.videoUrl){
+      currentUrl=safeImageUrl(data.videoUrl);
+
+      if(!currentUrl){
+        throw new Error("视频地址无效，请重新解析。");
+      }
+
+      $("resultHeading").textContent="视频作品";
+      $("player").src="/api/download?url="+encodeURIComponent(currentUrl)+"&inline=1";
+      $("videoPanel").hidden=false;
+      message("视频解析成功，可以预览或下载。");
+    }
+    else{
+      throw new Error("没有获取到可用的视频或图片内容。");
+    }
+
+    $("result").classList.add("show");
+    service(true,"解析成功");
+    $("result").scrollIntoView({behavior:"smooth",block:"start"});
+  }
+  catch(e){
+    message(e.message||"网络异常，请稍后重试。");
+    service(false,"解析异常");
+  }
+  finally{
+    btn.disabled=false;
+    btn.classList.remove("busy");
+    btn.textContent="↗　开始解析";
+  }
+});
+
+$("download").addEventListener("click",()=>{
+  if(currentUrl){
+    location.href="/api/download?url="+encodeURIComponent(currentUrl);
+  }
+});
+
+$("copy").addEventListener("click",async()=>{
+  if(!currentUrl)return;
+  try{
+    await navigator.clipboard.writeText(currentUrl);
+    toast("视频地址已复制");
+  }catch(e){
+    toast("复制失败，请检查浏览器权限");
+  }
+});
+
+$("zipDownload").addEventListener("click",async()=>{
+  if(!currentImages.length)return;
+
+  const btn=$("zipDownload");
+  btn.disabled=true;
+  btn.textContent="正在打包图片…";
+
+  try{
+    const response=await fetch("/api/zip",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({images:currentImages})
+    });
+
+    if(!response.ok){
+      const errorText=await response.text();
+      throw new Error(errorText||"ZIP 打包失败，请稍后重试。");
+    }
+
+    const blob=await response.blob();
+    const blobUrl=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=blobUrl;
+    a.download="media-images.zip";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(blobUrl),60000);
+    toast("图片 ZIP 已生成，正在下载");
+  }
+  catch(e){
+    toast(e.message||"打包失败，请稍后重试。");
+  }
+  finally{
+    btn.disabled=false;
+    btn.textContent="↓　打包下载全部图片（ZIP）";
+  }
+});
+
+$("share").addEventListener("input",()=>{
+  $("status").classList.remove("show");
+  updatePlatform();
+});
+
+document.querySelectorAll(".platform").forEach(el=>{
+  el.addEventListener("click",()=>{
+    $("share").focus();
+    updatePlatform();
+
+    if(!detectedPlatform){
+      const examples={
+        douyin:"https://v.douyin.com/",
+        tiktok:"https://www.tiktok.com/",
+        bilibili:"https://www.bilibili.com/",
+        x:"https://x.com/",
+        youtube:"https://www.youtube.com/"
+      };
+      $("platformHint").textContent="请粘贴 "+platformNames[el.dataset.platform]+" 链接";
+    }
+  });
+});
+
+$("player").addEventListener("error",()=>{
+  if(currentUrl){
+    toast("视频预览暂时无法播放，可以尝试下载。");
+  }
+});
 </script>
 </body>
 </html>
